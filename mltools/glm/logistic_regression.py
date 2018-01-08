@@ -3,7 +3,7 @@
 import numpy as np
 
 from .generalized_linear_model import GeneralizedLinearModel
-from mltools.classification import Classifier
+from mltools.classification import BinaryClassifier
 from ..optimization import Minimizer
 from ..regularization import lasso, ridge
 
@@ -53,7 +53,7 @@ class LogisticLoss(object):
         return self.x.T.dot(weights).dot(self.x) / self.n_samples
 
 
-class LogisticRegression(GeneralizedLinearModel, Classifier):
+class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
     # Average cross entropy loss function
     loss = None
 
@@ -115,10 +115,6 @@ class LogisticRegression(GeneralizedLinearModel, Classifier):
         y = self._preprocess_classes(y)
         y = self._preprocess_target(y)
 
-        if len(self._classes) > 2:
-            raise ValueError(f"This model is a binary classifier;"
-                             f"found {len(self._classes)} distinct classes")
-
         x = self._preprocess_features(x, training=True)
 
         self.loss = LogisticLoss(x, y)
@@ -140,18 +136,16 @@ class LogisticRegression(GeneralizedLinearModel, Classifier):
         self._fitted = True
         return self
 
-    def predict(self, x, cutoff=0.5):
-        """Classify input samples according to their probability estimates.
+    def predict_prob(self, x):
+        """Predict probability that data corresponds to the first class label.
 
         Parameters
         ----------
         x: array-like
             Feature matrix.
-        cutoff: float between 0 and 1
-            If P(y=C1|x)>cutoff, then x is classified as class C1, otherwise C0.
 
         Returns
         -------
-        Vector of class labels
+        P(y=C0|x)
         """
-        return self._classes[1 * (self.estimate(x) > cutoff)]
+        return self.estimate(x)
