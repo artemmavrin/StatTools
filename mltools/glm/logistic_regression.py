@@ -3,7 +3,7 @@
 import numpy as np
 
 from .generalized_linear_model import GeneralizedLinearModel
-from .. import Classifier
+from mltools.classification import Classifier
 from ..optimization import Minimizer
 from ..regularization import lasso, ridge
 
