@@ -10,7 +10,8 @@ from . import Minimizer
 class GradientDescent(Minimizer):
     """Unconstrained batch gradient descent with momentum."""
 
-    def __init__(self, rate=0.1, momentum=0.0, anneal=np.inf, iterations=10000):
+    def __init__(self, rate=0.1, momentum=0.0, nesterov=False, anneal=np.inf,
+                 iterations=10000):
         """Initialize the parameters of a gradient descent object.
 
         Parameters
@@ -19,6 +20,9 @@ class GradientDescent(Minimizer):
             Step size/learning rate. Must be positive.
         momentum: float, optional
             Momentum parameter. Must be positive.
+        nesterov: bool
+            If True, the update rule is Nesterov's accelerated gradient descent.
+            If False, the update rule is vanilla gradient descent with momentum.
         anneal: float, optional
             Factor determining the annealing schedule of the learning rate. Must
             be positive. Smaller values lead to faster shrinking of the learning
@@ -30,6 +34,8 @@ class GradientDescent(Minimizer):
             raise TypeError("Parameter 'rate' must be a positive float")
         if not isinstance(momentum, numbers.Real) or momentum < 0:
             raise TypeError("Parameter 'momentum' must be a non-negative float")
+        if not isinstance(nesterov, bool):
+            raise TypeError("Parameter 'nesterov' must be boolean")
         if not isinstance(anneal, numbers.Real) or anneal <= 0:
             raise TypeError("Parameter 'anneal' must be a positive float")
         if not isinstance(iterations, numbers.Integral) or iterations <= 0:
@@ -37,6 +43,7 @@ class GradientDescent(Minimizer):
 
         self.rate = rate
         self.momentum = momentum
+        self.nesterov = nesterov
         self.anneal = anneal
         self.iterations = iterations
 
@@ -89,14 +96,23 @@ class GradientDescent(Minimizer):
             kwargs = {}
 
         x = np.asarray(x0)
-        update = np.zeros(x.shape)
+        u = np.zeros(x.shape)
         if callback is not None:
             callback(x, *args, **kwargs)
 
-        for t in range(int(self.iterations)):
-            rate = self.rate / (1 + t / self.anneal)
-            update = self.momentum * update - rate * grad(x, *args, **kwargs)
-            x = x + update
-            if callback is not None:
-                callback(x, *args, **kwargs)
+        if self.nesterov:
+            for t in range(int(self.iterations)):
+                rate = self.rate / (1 + t / self.anneal)
+                u_prev = u
+                u = self.momentum * u - rate * grad(x, *args, **kwargs)
+                x = x - self.momentum * u_prev + (1 + self.momentum) * u
+                if callback is not None:
+                    callback(x, *args, **kwargs)
+        else:
+            for t in range(int(self.iterations)):
+                rate = self.rate / (1 + t / self.anneal)
+                u = self.momentum * u - rate * grad(x, *args, **kwargs)
+                x = x + u
+                if callback is not None:
+                    callback(x, *args, **kwargs)
         return x

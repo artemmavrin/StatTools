@@ -68,6 +68,24 @@ class TestGradientDescent(unittest.TestCase):
             x = gd.minimize(x0=x0, func=func, grad=grad)
             np.testing.assert_almost_equal(x, np.zeros(size))
 
+    def test_quadratic_function_of_several_variables_nesterov(self):
+        def func(x):
+            return np.dot(x, x)
+
+        def grad(x):
+            return 2.0 * np.asarray(x)
+
+        gd = GradientDescent(rate=0.05, iterations=500, momentum=0.5,
+                             nesterov=True, anneal=250)
+        n_tests = 100
+        for _ in range(n_tests):
+            size = np.random.randint(low=1, high=100)
+            loc = np.random.uniform(low=-1000, high=1000)
+            scale = np.random.uniform(low=1, high=10000)
+            x0 = np.random.normal(loc=loc, scale=scale, size=size)
+            x = gd.minimize(x0=x0, func=func, grad=grad)
+            np.testing.assert_almost_equal(x, np.zeros(size))
+
 
 if __name__ == "__main__":
     unittest.main()
