@@ -3,7 +3,7 @@
 import numpy as np
 
 from .generalized_linear_model import GeneralizedLinearModel
-from mltools.classification import BinaryClassifier
+from ..classification import BinaryClassifier
 from ..optimization import Minimizer
 from ..regularization import lasso, ridge
 
@@ -57,7 +57,7 @@ class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
     # Average cross entropy loss function
     loss = None
 
-    def __init__(self, penalty="l2", lam=0.1, intercept=True, preprocess=None):
+    def __init__(self, penalty="l2", lam=0.1, intercept=True):
         """Initialize a logistic regression model.
 
         Parameters
@@ -75,14 +75,10 @@ class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
             Regularization parameter.
         intercept: bool, optional
             Indicates whether the module should fit an intercept term.
-        preprocess: DataTransformer
-            Defines method for preprocessing feature data before model fitting
-            and making predictions.
         """
         self.penalty = penalty
         self.lam = lam
         self.intercept = intercept
-        self.preprocess = preprocess
 
     # The link function for logistic regression is the logit function, whose
     # inverse is the sigmoid function

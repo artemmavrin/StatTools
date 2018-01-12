@@ -66,7 +66,7 @@ class NewtonRaphson(Minimizer):
             if hasattr(func, "grad"):
                 grad = func.grad
             else:
-                raise ValueError("Could not detect function gradient")
+                raise ValueError("Could not detect objective function gradient")
         if not callable(grad):
             raise ValueError(f"Gradient {grad} is not callable")
 
@@ -74,7 +74,7 @@ class NewtonRaphson(Minimizer):
             if hasattr(func, "hess"):
                 hess = func.hess
             else:
-                raise ValueError("Could not detect function Hessian")
+                raise ValueError("Could not detect objective function Hessian")
         if not callable(hess):
             raise ValueError(f"Hessian {hess} is not callable")
 

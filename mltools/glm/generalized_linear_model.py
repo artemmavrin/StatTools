@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from ..preprocessing import DataTransformer
 from ..utils.exceptions import UnfittedModelException
 
 
@@ -18,10 +17,6 @@ class GeneralizedLinearModel(ABC):
 
     # Indicates whether the module should fit an intercept term
     intercept = True
-
-    # Defines method for preprocessing feature data before model fitting and
-    # making predictions
-    preprocess: DataTransformer = None
 
     # Weights of the model
     _weights = None
@@ -54,11 +49,6 @@ class GeneralizedLinearModel(ABC):
             raise ValueError("Feature matrix must be 2-dimensional.")
         else:
             x = np.array(x)
-
-        if self.preprocess is not None:
-            if training:
-                self.preprocess.fit(x)
-            x = self.preprocess.transform(x)
 
         if self.intercept:
             x = _add_intercept_column(x)

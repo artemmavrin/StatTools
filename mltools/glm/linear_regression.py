@@ -3,7 +3,7 @@
 import numpy as np
 
 from .generalized_linear_model import GeneralizedLinearModel
-from mltools.regression import Regressor
+from ..regression import Regressor
 
 
 class LinearRegression(GeneralizedLinearModel, Regressor):
@@ -12,6 +12,16 @@ class LinearRegression(GeneralizedLinearModel, Regressor):
     # The link function for linear regression is the identity function (which is
     # of course its own inverse).
     _inv_link = staticmethod(lambda x: x)
+
+    def __init__(self, intercept=True):
+        """Initialize a LinearRegression object.
+
+        Parameters
+        ----------
+        intercept: bool
+            Indicates whether the module should fit an intercept term.
+        """
+        self.intercept = intercept
 
     def fit(self, x, y):
         """Train the linear regression model.

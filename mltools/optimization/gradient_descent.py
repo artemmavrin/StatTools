@@ -4,7 +4,7 @@ import numbers
 
 import numpy as np
 
-from . import Minimizer
+from .base import Minimizer
 
 
 class GradientDescent(Minimizer):
@@ -86,7 +86,7 @@ class GradientDescent(Minimizer):
             if hasattr(func, "grad"):
                 grad = func.grad
             else:
-                raise ValueError("Could not detect function gradient")
+                raise ValueError("Could not detect objective function gradient")
         if not callable(grad):
             raise ValueError(f"Gradient {grad} is not callable")
 

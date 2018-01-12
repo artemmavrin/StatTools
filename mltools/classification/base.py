@@ -1,4 +1,4 @@
-"""Defines the Classifier abstract base class."""
+"""Defines the Classifier and BinaryClassifier abstract base classes."""
 
 import abc
 
@@ -8,14 +8,15 @@ import numpy as np
 class Classifier(metaclass=abc.ABCMeta):
     """Abstract base class for classifiers."""
 
-    # Distinct classes---usually to be determined during model fitting
+    # List of distinct class labels. These will usually be determined during
+    # model fitting.
     _classes = None
 
     def _preprocess_classes(self, target):
         """Extract distinct classes from a target vector.
 
         This also converts the target vector to numeric indices pointing to the
-        class in the `_classes` attribute.
+        corresponding class in the `_classes` attribute.
         """
         self._classes, target = np.unique(target, return_inverse=True)
         return target
@@ -23,18 +24,20 @@ class Classifier(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def fit(self, *args, **kwargs):
         """Fit the classifier."""
-        pass
+        raise NotImplementedError()
 
     @abc.abstractmethod
     def predict(self, *args, **kwargs):
         """Predict class labels from input feature data."""
-        pass
+        raise NotImplementedError()
 
 
 class BinaryClassifier(Classifier):
     """Abstract base class for binary classifiers.
 
-    In this case, the _classes attribute will be a list of the form [C0, C1].
+    In this case, the `_classes` attribute will be a list of the form [C0, C1],
+    where C0 and C1 are distinct class labels (except in degenerate cases when
+    there is only one class C0).
     """
 
     def _preprocess_classes(self, target):
@@ -48,10 +51,10 @@ class BinaryClassifier(Classifier):
 
     @abc.abstractmethod
     def predict_prob(self, *args, **kwargs):
-        """Return probability that data belongs to the first class."""
-        pass
+        """Return probability P(y=C1|x) that the data belongs to class C1."""
+        raise NotImplementedError()
 
-    def predict(self, x, cutoff=0.5):
+    def predict(self, x, cutoff=0.5, *args, **kwargs):
         """Classify input samples according to their probability estimates.
 
         Parameters
@@ -60,9 +63,14 @@ class BinaryClassifier(Classifier):
             Feature matrix.
         cutoff: float between 0 and 1
             If P(y=C1|x)>cutoff, then x is classified as class C1, otherwise C0.
+        args: sequence
+            Positional arguments to pass to `predict_prob`.
+        kwargs: dict
+            Keyword arguments to pass to `predict_prob`.
 
         Returns
         -------
         Vector of class labels
         """
-        return self._classes[1 * (self.predict_prob(x) > cutoff)]
+        prob = self.predict_prob(x, *args, **kwargs)
+        return self._classes[list(map(int, np.less(cutoff, prob)))]
