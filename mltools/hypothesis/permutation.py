@@ -4,8 +4,10 @@ import itertools
 
 import numpy as np
 
+from .base import HypothesisTest, HypothesisTestResult
 
-class PermutationTest(object):
+
+class PermutationTest(HypothesisTest):
     """General-purpose permutation test."""
 
     # Empirical distribution of test statistics of permuted data
@@ -34,12 +36,8 @@ class PermutationTest(object):
         indices = list(itertools.accumulate(map(len, data)))
         self.slices = [slice(i, j) for i, j in zip([0] + indices, indices)]
 
-        # Convert each sample to a Numpy array
         self.data = list(map(np.asarray, data))
-
-        # Store the test statistic function and compute the true test statistic
         self.statistic = statistic
-        self.true_statistic = statistic(*data)
 
     def test(self, n=10000, seed=None):
         """Perform the permutation test.
@@ -53,7 +51,15 @@ class PermutationTest(object):
             Number of permutations to sample.
         seed: int, optional
             Seed for NumPy's random number generator.
+
+        Returns
+        -------
+        res: HypothesisTestResult
+            A named tuple with a "statistic" and "p_value" field. The
+            "statistic" field stores the observed test statistic and the
+            "p_value" field stores the test's two-sided p-value.
         """
+        # Generate the empirical distribution
         data = np.concatenate(self.data)
         dist = []
         if seed is not None:
@@ -62,32 +68,12 @@ class PermutationTest(object):
             data_ = np.random.permutation(data)
             test_statistic = self.statistic(*(data_[i] for i in self.slices))
             dist.append(test_statistic)
+        dist = np.asarray(dist)
 
+        # Compute the observed value of the test statistic and the p-value
+        statistic = self.statistic(*self.data)
+        p_value = np.sum(np.abs(dist) >= np.abs(statistic)) / len(dist)
+
+        # Save the empirical distribution and return the test result
         self.dist = np.sort(dist)
-
-    def p_value(self, kind="greater"):
-        """Compute a p-value for the test.
-
-        Parameters
-        ----------
-        kind: str, optional
-            Specifies the kind of p-value to report (i.e., specifies the
-            alternate hypothesis).
-            Use "greater" to return P(X>=t|H0).
-            Use "less" to return P(X<=t|H0).
-            Use "two-sided" to return P(abs(X)>=abs(t)|H0).
-
-        Returns
-        -------
-        The p-value.
-        """
-        dist = self.dist
-        true = self.true_statistic
-        if kind == "greater":
-            return np.sum(dist >= true) / len(dist)
-        elif kind == "less":
-            return np.sum(dist <= true) / len(dist)
-        elif kind == "two-sided":
-            return np.sum(np.abs(dist) >= np.abs(true)) / len(dist)
-        else:
-            raise ValueError(f"Unknown p-value kind: {kind}")
+        return HypothesisTestResult(statistic=statistic, p_value=p_value)
