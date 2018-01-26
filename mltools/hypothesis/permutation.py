@@ -39,7 +39,7 @@ class PermutationTest(HypothesisTest):
         self.data = list(map(np.asarray, data))
         self.statistic = statistic
 
-    def test(self, n=10000, seed=None):
+    def test(self, n=10000, seed=None, tail="two-sided"):
         """Perform the permutation test.
 
         The samples in the data are permuted n times and the test statistics of
@@ -51,6 +51,9 @@ class PermutationTest(HypothesisTest):
             Number of permutations to sample.
         seed: int, optional
             Seed for NumPy's random number generator.
+        tail: "left", "right", or "two-sided" (default)
+            Specifies the kind of test to perform (i.e., one-tailed or
+            two-tailed).
 
         Returns
         -------
@@ -72,7 +75,14 @@ class PermutationTest(HypothesisTest):
 
         # Compute the observed value of the test statistic and the p-value
         statistic = self.statistic(*self.data)
-        p_value = np.sum(np.abs(dist) >= np.abs(statistic)) / len(dist)
+        if tail == "two-sided":
+            p_value = np.sum(np.abs(dist) >= np.abs(statistic)) / n
+        elif tail == "left":
+            p_value = np.sum(dist <= statistic) / n
+        elif tail == "right":
+            p_value = np.sum(dist >= statistic) / n
+        else:
+            raise ValueError(f"Unsupported value for parameter 'tail': {tail}")
 
         # Save the empirical distribution and return the test result
         self.dist = np.sort(dist)
