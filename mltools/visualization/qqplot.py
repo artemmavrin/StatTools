@@ -4,9 +4,10 @@ import numpy as np
 import scipy.stats as st
 import matplotlib.pyplot as plt
 
+from .abline import abline
 
-def qqplot(y, qfunc=None, qfunc_kwargs=None, ax=None, ax_kwargs=None, *args,
-           **kwargs):
+
+def qqplot(y, qfunc=None, ax=None, **kwargs):
     """Draw a QQ plot comparing a data sample to a theoretical distribution.
 
     Parameters
@@ -18,18 +19,17 @@ def qqplot(y, qfunc=None, qfunc_kwargs=None, ax=None, ax_kwargs=None, *args,
         the theoretical distribution the data is being compared to.
         If this is not specified, the normal distribution quantile function will
         be used.
-    qfunc_kwargs: dict, optional
-        Additional keyword arguments for the quantile function.
     ax: matplotlib axis, optional
         The axis on which to draw the QQ plot.
         If this is not specified, the current axis will be used.
-    ax_kwargs: dict, optional
-        Additional keyword arguments to pass to matplotlib.pyplot.gca() if
-        axis is specified.
-    args: sequence
-        Additional positional arguments to pass to matplotlib.pyplot.scatter().
     kwargs: dict
-        Additional keyword arguments to pass to matplotlib.pyplot.scatter().
+        Additional keyword arguments to pass to the "scatter" function when
+        drawing the scatter plot of the order statistics against the true
+        quantiles.
+
+    Returns
+    -------
+    The axis on which the line was drawn.
     """
     # Order statistics of the data sample
     y = np.sort(y)
@@ -42,9 +42,7 @@ def qqplot(y, qfunc=None, qfunc_kwargs=None, ax=None, ax_kwargs=None, *args,
         # Normal QQ plot by default
         x = st.norm.ppf(p, loc=y.mean(), scale=y.std())
     else:
-        if qfunc_kwargs is None:
-            qfunc_kwargs = {}
-        x = qfunc(p, **qfunc_kwargs)
+        x = qfunc(p)
 
     if "c" not in kwargs:
         # Default color represents the distance to the diagonal line
@@ -54,19 +52,21 @@ def qqplot(y, qfunc=None, qfunc_kwargs=None, ax=None, ax_kwargs=None, *args,
         kwargs["cmap"] = plt.get_cmap("coolwarm")
 
     if ax is None:
-        if ax_kwargs is None:
-            ax_kwargs = {}
-        ax = plt.gca(**ax_kwargs)
+        ax = plt.gca()
 
-    ax.scatter(x, y, zorder=2, *args, **kwargs)
+    ax.scatter(x, y, zorder=2, **kwargs)
     ax.set_xlabel("Theoretical quantiles")
     ax.set_ylabel("Observed quantiles")
 
-    # Diagonal line for comparison
+    # Setup equal x and y axes
     x_min, x_max = ax.get_xlim()
     y_min, y_max = ax.get_ylim()
     bounds = (min(x_min, y_min), max(x_max, y_max))
-    ax.plot(bounds, bounds, c="black", zorder=1)
     ax.set_xlim(bounds)
     ax.set_ylim(bounds)
     ax.set_aspect("equal")
+
+    # Diagonal line for quantile comparison
+    abline(0, 1, ax=ax, ls="--", c="k", zorder=1)
+
+    return ax
