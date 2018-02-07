@@ -4,8 +4,8 @@ import functools
 
 import numpy as np
 
-from .base import Classifier
-from .base import BinaryClassifier
+from .classifier import Classifier
+from .classifier import BinaryClassifier
 
 
 class OVRClassifier(Classifier):

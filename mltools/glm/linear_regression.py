@@ -3,7 +3,7 @@
 import numpy as np
 
 from .generalized_linear_model import GeneralizedLinearModel
-from ..regression import Regressor
+from ..generic import Regressor
 
 
 class LinearRegression(GeneralizedLinearModel, Regressor):
