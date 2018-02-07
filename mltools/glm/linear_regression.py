@@ -39,7 +39,7 @@ class LinearRegression(GeneralizedLinearModel, Regressor):
         """
         x = self._preprocess_features(x, training=True)
         y = self._preprocess_target(y)
-        self._weights = np.linalg.lstsq(x, y)[0]
+        self._weights, *_ = np.linalg.lstsq(x, y, rcond=None)
         self._fitted = True
         return self
 

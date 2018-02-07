@@ -90,7 +90,8 @@ class NewtonRaphson(Minimizer):
         for _ in range(int(self.iterations)):
             a = np.atleast_2d(hess(x, *args, **kwargs))
             b = np.atleast_1d(grad(x, *args, **kwargs))
-            x = x - np.linalg.lstsq(a, b)[0]
+            u, *_ = np.linalg.lstsq(a, b, rcond=None)
+            x = x - u
             if callback is not None:
                 callback(x, *args, **kwargs)
         return x
