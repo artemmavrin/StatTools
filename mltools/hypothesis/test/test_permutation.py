@@ -12,8 +12,9 @@ class TestPermutationTest(unittest.TestCase):
         """Numerical example from Section 1.3, "Testing a Hypothesis", in
         Chapter 1 of
             Phillip Good. Permutation, parametric and bootstrap tests of
-            hypotheses. Third. Springer Series in Statistics. Springer-Verlag,
-            New York, 2005, pp. xx+315. DOI: https://doi.org/10.1007/b138696.
+            hypotheses, Third Edition. Springer Series in Statistics.
+            Springer-Verlag, New York, 2005, pp. xx+315.
+            DOI: https://doi.org/10.1007/b138696.
 
         This is a test of an exact permutation test, meaning that all possible
         permutations are to be sampled once.
