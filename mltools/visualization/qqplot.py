@@ -1,8 +1,8 @@
 """Implements quantile-quantile plots"""
 
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as st
-import matplotlib.pyplot as plt
 
 from .abline import abline
 

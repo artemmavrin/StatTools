@@ -1,7 +1,7 @@
 """Unit tests for the LinearRegression class."""
 
-import unittest
 import itertools
+import unittest
 
 import numpy as np
 
