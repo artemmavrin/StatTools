@@ -37,7 +37,7 @@ class LinearRegression(GeneralizedLinearModel, Regressor):
         -------
         This LinearRegression instance is returned.
         """
-        x = self._preprocess_features(x, training=True)
+        x = self._preprocess_features(x, fitting=True)
         y = self._preprocess_target(y)
         self._weights, *_ = np.linalg.lstsq(x, y, rcond=None)
         self._fitted = True

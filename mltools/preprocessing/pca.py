@@ -4,11 +4,10 @@ import numbers
 
 import numpy as np
 
-from .base import DataTransformer
-from ..utils.exceptions import UnfittedModelException
+from .base import InvertibleDataTransformer
 
 
-class PCA(DataTransformer):
+class PCA(InvertibleDataTransformer):
     """Decompose data into principal components."""
 
     # Eigenvalues of the covariance matrix of the training data, sorted from
@@ -40,7 +39,8 @@ class PCA(DataTransformer):
         self._evals = evals[idx]
         self._evecs = np.atleast_1d(evecs[:, idx])
 
-        return super(PCA, self).fit()
+        self._fitted = True
+        return self
 
     def transform(self, x, dim=None):
         """Reduce a data matrix to a certain number of principal components.
@@ -58,7 +58,8 @@ class PCA(DataTransformer):
         y: array-like
             Matrix whose columns are principal components.
         """
-        super(PCA, self).transform()
+        if not self.is_fitted():
+            raise self.unfitted_exception()
 
         x = self._preprocess_data(x)
 
@@ -86,8 +87,8 @@ class PCA(DataTransformer):
         x: array-like
             Matrix with the full number of dimensions.
         """
-        if not self._fitted:
-            raise UnfittedModelException(self)
+        if not self.is_fitted():
+            raise self.unfitted_exception()
 
         # Validate input
         if np.ndim(y) == 1:

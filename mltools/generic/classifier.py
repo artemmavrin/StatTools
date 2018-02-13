@@ -4,8 +4,10 @@ import abc
 
 import numpy as np
 
+from .fittable import Fittable
 
-class Classifier(metaclass=abc.ABCMeta):
+
+class Classifier(Fittable, metaclass=abc.ABCMeta):
     """Abstract base class for classifiers."""
 
     # List of distinct class labels. These will usually be determined during
@@ -20,11 +22,6 @@ class Classifier(metaclass=abc.ABCMeta):
         """
         self._classes, target = np.unique(target, return_inverse=True)
         return target
-
-    @abc.abstractmethod
-    def fit(self, *args, **kwargs):
-        """Fit the classifier."""
-        raise NotImplementedError()
 
     @abc.abstractmethod
     def predict(self, *args, **kwargs):

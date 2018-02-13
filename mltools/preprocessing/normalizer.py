@@ -2,11 +2,10 @@
 
 import numpy as np
 
-from .base import DataTransformer
-from ..utils.exceptions import UnfittedModelException
+from .base import InvertibleDataTransformer
 
 
-class Normalizer(DataTransformer):
+class Normalizer(InvertibleDataTransformer):
     """Translate and scale data columns to have mean 0 and variance 1."""
 
     # Vector of means of the feature columns of the training data
@@ -64,7 +63,8 @@ class Normalizer(DataTransformer):
         self._std = np.std(x, axis=0, ddof=0 if self.bias else 1)
         self._idx = np.where(self._std > 0)[0]
 
-        return super(Normalizer, self).fit()
+        self._fitted = True
+        return self
 
     def transform(self, x):
         """Normalize the data.
@@ -80,7 +80,8 @@ class Normalizer(DataTransformer):
         z: array-like
             Normalized data matrix.
         """
-        super(Normalizer, self).transform()
+        if not self.is_fitted():
+            raise self.unfitted_exception()
 
         x = self._preprocess_data(x)
         z = np.asarray(x, dtype=np.float_)
@@ -113,8 +114,8 @@ class Normalizer(DataTransformer):
         x: array-like
             Un-normalized data with as many columns as the training data.
         """
-        if not self._fitted:
-            raise UnfittedModelException(self)
+        if not self.is_fitted():
+            raise self.unfitted_exception()
 
         # Validate input
         if np.ndim(z) == 1:

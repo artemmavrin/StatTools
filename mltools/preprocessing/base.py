@@ -4,43 +4,18 @@ import abc
 
 import numpy as np
 
-from ..utils.exceptions import UnfittedModelException
+from ..generic import Fittable
 
 
-class DataTransformer(metaclass=abc.ABCMeta):
+class DataTransformer(Fittable, metaclass=abc.ABCMeta):
     """Data transformer abstract base class."""
-
-    # Indicate whether the transformer is fitted
-    _fitted = False
 
     # Number of features found in the training data
     _n_features = None
 
     @abc.abstractmethod
-    def fit(self, *args, **kwargs):
-        """Fit the transformer to training data.
-
-        This method should return self to allow transformer.fit().transform().
-        One way to do this safely is to call
-            return super(subclass, self).fit()
-        at the end of the subclass's fit() implementation.
-        """
-        self._fitted = True
-        return self
-
-    @abc.abstractmethod
     def transform(self, *args, **kwargs):
-        """Transform data.
-
-        This method should raise UnfittedModelException if the instance's
-        `_fitted` flag is False. This can be ensured by calling
-            super(Normalizer, self).transform()
-        at the start of the subclass's transform() implementation."""
-        if not self._fitted:
-            raise UnfittedModelException(self)
-
-    def inv_transform(self, *args):
-        """(Optional) Undo a transformation."""
+        """Transform data."""
         raise NotImplementedError()
 
     def _preprocess_data(self, x, fitting=False):
@@ -54,7 +29,7 @@ class DataTransformer(metaclass=abc.ABCMeta):
             dimensional, it is treated as a data matrix of shape (n_samples, 1),
             i.e., one feature column.
         fitting: bool, optional
-            Indicates whether preprocessing is being done during training.
+            Indicates whether preprocessing is being done during fitting.
 
         Returns
         -------
@@ -77,3 +52,12 @@ class DataTransformer(metaclass=abc.ABCMeta):
                     f"found {np.shape(x)[1]}.")
 
         return x
+
+
+class InvertibleDataTransformer(DataTransformer):
+    """Data transformer where transformations can be un-done at least partly."""
+
+    @abc.abstractmethod
+    def inv_transform(self, *args):
+        """Undo a transformation."""
+        raise NotImplementedError()

@@ -2,8 +2,8 @@ import unittest
 
 import numpy as np
 
+from mltools.generic.fittable import UnfittedModelException
 from mltools.preprocessing import Normalizer
-from mltools.utils.exceptions import UnfittedModelException
 
 
 class TestNormalizer(unittest.TestCase):

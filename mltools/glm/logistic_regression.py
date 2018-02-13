@@ -111,7 +111,7 @@ class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
         y = self._preprocess_classes(y)
         y = self._preprocess_target(y)
 
-        x = self._preprocess_features(x, training=True)
+        x = self._preprocess_features(x, fitting=True)
 
         self.loss = LogisticLoss(x, y)
 

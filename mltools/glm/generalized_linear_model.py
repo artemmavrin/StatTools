@@ -1,10 +1,10 @@
 """Defines the abstract GeneralizedLinearModel base class."""
 
-from abc import ABC, abstractmethod
+import abc
 
 import numpy as np
 
-from ..utils.exceptions import UnfittedModelException
+from ..generic import Fittable
 
 
 def _add_intercept_column(x):
@@ -12,7 +12,7 @@ def _add_intercept_column(x):
     return np.c_[np.ones(np.shape(x)[0]), x]
 
 
-class GeneralizedLinearModel(ABC):
+class GeneralizedLinearModel(Fittable, metaclass=abc.ABCMeta):
     """Generalized linear model abstract base class."""
 
     # Indicates whether the module should fit an intercept term
@@ -21,22 +21,19 @@ class GeneralizedLinearModel(ABC):
     # Weights of the model
     _weights = None
 
-    # Indicates whether the model has been fitted
-    _fitted = False
-
     # Number of columns of compatible feature matrices---to be determined during
     # model fitting
     _n_features = None
 
-    def _preprocess_features(self, x, training=False):
+    def _preprocess_features(self, x, fitting=False):
         """Apply necessary validation and preprocessing to a feature matrix.
 
         Parameters
         ----------
         x : array-like
             Feature matrix
-        training : bool, optional
-            Indicates whether preprocessing is being done during training
+        fitting : bool, optional
+            Indicates whether preprocessing is being done during fitting
 
         Returns
         -------
@@ -53,7 +50,7 @@ class GeneralizedLinearModel(ABC):
         if self.intercept:
             x = _add_intercept_column(x)
 
-        if training:
+        if fitting:
             self._n_features = x.shape[1]
         else:
             if x.shape[1] != self._n_features:
@@ -82,7 +79,7 @@ class GeneralizedLinearModel(ABC):
         return np.asarray(y)
 
     @staticmethod
-    @abstractmethod
+    @abc.abstractmethod
     def _inv_link(*args):
         """Inverse link function for the given generalized linear model."""
         pass
@@ -100,7 +97,7 @@ class GeneralizedLinearModel(ABC):
         f(x * w), where f is the model's inverse link function and w is the
         model's weight vector.
         """
-        if not self._fitted:
-            raise UnfittedModelException(self)
-        x = self._preprocess_features(x, training=False)
+        if not self.is_fitted():
+            raise self.unfitted_exception()
+        x = self._preprocess_features(x, fitting=False)
         return self._inv_link(x.dot(self._weights))

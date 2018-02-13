@@ -2,14 +2,11 @@
 
 import abc
 
+from .fittable import Fittable
 
-class Regressor(metaclass=abc.ABCMeta):
+
+class Regressor(Fittable, metaclass=abc.ABCMeta):
     """Abstract base class for regressors."""
-
-    @abc.abstractmethod
-    def fit(self, *args, **kwargs):
-        """Fit the regressor."""
-        pass
 
     @abc.abstractmethod
     def predict(self, *args, **kwargs):
