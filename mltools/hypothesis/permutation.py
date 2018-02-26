@@ -1,6 +1,7 @@
 """Defines the PermutationTest class."""
 
 from itertools import accumulate, permutations
+from functools import partial
 import math
 import numbers
 
@@ -22,7 +23,7 @@ class PermutationTest(HypothesisTest):
     # Empirical distribution of test statistics of permuted data
     dist = None
 
-    def __init__(self, *data, statistic):
+    def __init__(self, *data, statistic, **kwargs):
         """Initialize a PermutationTest object.
 
         Parameters
@@ -32,6 +33,8 @@ class PermutationTest(HypothesisTest):
         statistic: callable
             The test statistic, a function of the data. This is necessarily a
             keyword argument.
+        kwargs: dict
+            Additional keyword arguments to pass to the test statistic function.
         """
         # Validate input
         if not callable(statistic):
@@ -42,7 +45,7 @@ class PermutationTest(HypothesisTest):
             raise ValueError("Data must be 1D arrays.")
 
         self.data = list(map(np.asarray, data))
-        self.statistic = statistic
+        self.statistic = partial(statistic, **kwargs)
 
     def test(self, n=None, alpha=0.05, tail="two-sided", seed=None):
         """Perform the permutation test.
