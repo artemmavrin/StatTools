@@ -4,7 +4,7 @@ import numpy as np
 
 from .generalized_linear_model import GeneralizedLinearModel
 from ..generic import BinaryClassifier
-from ..optimization import Minimizer
+from ..optimization import Optimizer
 from ..regularization import lasso, ridge
 
 
@@ -84,7 +84,7 @@ class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
     # inverse is the sigmoid function
     _inv_link = staticmethod(sigmoid)
 
-    def fit(self, x, y, minimizer, *args, **kwargs):
+    def fit(self, x, y, optimizer, *args, **kwargs):
         """Fit the logistic regression model.
 
         Parameters
@@ -95,7 +95,7 @@ class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
             shape (n_samples, 1) (i.e., 1 feature column).
         y: array-like
             Target vector. Should consist of binary class labels of some kind.
-        minimizer: Minimizer
+        optimizer: Optimizer
             Specifies the optimization algorithm used.
         args: sequence
             Additional positional arguments to pass to the minimizer's
@@ -122,12 +122,12 @@ class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
         elif self.penalty is not None:
             raise ValueError(f"Unknown penalty type: {self.penalty}")
 
-        if not isinstance(minimizer, Minimizer):
-            raise ValueError(f"Unknown minimization method: {minimizer}")
+        if not isinstance(optimizer, Optimizer):
+            raise ValueError(f"Unknown minimization method: {optimizer}")
 
         w0 = np.zeros(x.shape[1])
 
-        self._weights = minimizer.minimize(x0=w0, func=self.loss,
+        self._weights = optimizer.optimize(x0=w0, func=self.loss,
                                            *args, **kwargs)
         self._fitted = True
         return self

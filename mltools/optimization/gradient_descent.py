@@ -4,10 +4,10 @@ import numbers
 
 import numpy as np
 
-from .base import Minimizer
+from .base import Optimizer
 
 
-class GradientDescent(Minimizer):
+class GradientDescent(Optimizer):
     """Unconstrained batch gradient descent with momentum."""
 
     def __init__(self, rate=0.1, momentum=0.0, nesterov=False, anneal=np.inf,
@@ -47,7 +47,7 @@ class GradientDescent(Minimizer):
         self.anneal = anneal
         self.iterations = iterations
 
-    def minimize(self, x0, func, grad=None, args=None, kwargs=None,
+    def optimize(self, x0, func, grad=None, args=None, kwargs=None,
                  callback=None):
         """Approximate a minimizer of the objective function.
 

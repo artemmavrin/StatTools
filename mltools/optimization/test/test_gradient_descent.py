@@ -14,7 +14,7 @@ class TestGradientDescent(unittest.TestCase):
             return 2.0 * x
 
         gd = GradientDescent(rate=0.01, iterations=1500)
-        x = gd.minimize(x0=100, func=func, grad=grad)
+        x = gd.optimize(x0=100, func=func, grad=grad)
         self.assertAlmostEqual(x, 0.0)
 
     def test_quadratic_function_of_several_variables(self):
@@ -30,7 +30,7 @@ class TestGradientDescent(unittest.TestCase):
             loc = np.random.uniform(low=-1000, high=1000)
             scale = np.random.uniform(low=1, high=10000)
             x0 = np.random.normal(loc=loc, scale=scale, size=size)
-            x = gd.minimize(x0=x0, func=func)
+            x = gd.optimize(x0=x0, func=func)
             np.testing.assert_almost_equal(x, np.zeros(size))
 
     def test_quadratic_function_of_several_variables_momentum(self):
@@ -47,7 +47,7 @@ class TestGradientDescent(unittest.TestCase):
             loc = np.random.uniform(low=-1000, high=1000)
             scale = np.random.uniform(low=1, high=10000)
             x0 = np.random.normal(loc=loc, scale=scale, size=size)
-            x = gd.minimize(x0=x0, func=func, grad=grad)
+            x = gd.optimize(x0=x0, func=func, grad=grad)
             np.testing.assert_almost_equal(x, np.zeros(size))
 
     def test_quadratic_function_of_several_variables_annealing(self):
@@ -65,7 +65,7 @@ class TestGradientDescent(unittest.TestCase):
             loc = np.random.uniform(low=-1000, high=1000)
             scale = np.random.uniform(low=1, high=10000)
             x0 = np.random.normal(loc=loc, scale=scale, size=size)
-            x = gd.minimize(x0=x0, func=func, grad=grad)
+            x = gd.optimize(x0=x0, func=func, grad=grad)
             np.testing.assert_almost_equal(x, np.zeros(size))
 
     def test_quadratic_function_of_several_variables_nesterov(self):
@@ -83,7 +83,7 @@ class TestGradientDescent(unittest.TestCase):
             loc = np.random.uniform(low=-1000, high=1000)
             scale = np.random.uniform(low=1, high=10000)
             x0 = np.random.normal(loc=loc, scale=scale, size=size)
-            x = gd.minimize(x0=x0, func=func, grad=grad)
+            x = gd.optimize(x0=x0, func=func, grad=grad)
             np.testing.assert_almost_equal(x, np.zeros(size))
 
 

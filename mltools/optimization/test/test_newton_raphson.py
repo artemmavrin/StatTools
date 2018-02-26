@@ -17,7 +17,7 @@ class TestNewtonRaphson(unittest.TestCase):
             return 2.0
 
         nr = NewtonRaphson(iterations=10)
-        x = nr.minimize(x0=100, func=func, grad=grad, hess=hess)
+        x = nr.optimize(x0=100, func=func, grad=grad, hess=hess)
         self.assertAlmostEqual(x, 0.0)
 
     def test_quadratic_function_of_several_variables(self):
@@ -34,7 +34,7 @@ class TestNewtonRaphson(unittest.TestCase):
             loc = np.random.uniform(-1000, 1000)
             scale = np.random.uniform(10, 10000)
             x0 = np.random.normal(loc=loc, scale=scale, size=size)
-            x = nr.minimize(x0=x0, func=func)
+            x = nr.optimize(x0=x0, func=func)
             np.testing.assert_almost_equal(x, np.zeros(size))
 
 

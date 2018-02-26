@@ -4,10 +4,10 @@ import numbers
 
 import numpy as np
 
-from .base import Minimizer
+from .base import Optimizer
 
 
-class NewtonRaphson(Minimizer):
+class NewtonRaphson(Optimizer):
     """Find stationary points of functions using the Newton-Raphson method."""
 
     def __init__(self, iterations=1000):
@@ -23,7 +23,7 @@ class NewtonRaphson(Minimizer):
 
         self.iterations = iterations
 
-    def minimize(self, x0, func, grad=None, hess=None, args=None, kwargs=None,
+    def optimize(self, x0, func, grad=None, hess=None, args=None, kwargs=None,
                  callback=None):
         """Approximate a stationary point of the objective function.
 
