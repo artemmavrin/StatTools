@@ -1,6 +1,6 @@
 """Defines the PermutationTest class."""
 
-import itertools
+from itertools import accumulate, permutations
 import math
 import numbers
 
@@ -70,12 +70,14 @@ class PermutationTest(HypothesisTest):
         Returns
         -------
         res: HypothesisTestResult
-            A named tuple with a "statistic" and "p_value" field. The
-            "statistic" field stores the observed test statistic and the
-            "p_value" field stores the test's two-sided p-value.
+            A named tuple with "statistic", "p_value", "lower", and "upper"
+            fields. The "statistic" field stores the observed test statistic.
+            The "p_value" field stores the test's p-value for the given
+            significance level alpha. The "lower" and "upper" fields store the
+            test's upper and lower alpha-percentile interval bounds.
         """
         # Get slices corresponding to each data sample
-        indices = list(itertools.accumulate(map(len, self.data)))
+        indices = list(accumulate(map(len, self.data)))
         slices = [slice(i, j) for i, j in zip([0] + indices, indices)]
 
         # Combine the data samples into one sample
@@ -93,42 +95,37 @@ class PermutationTest(HypothesisTest):
             raise TypeError("Parameter 'n' must be a positive integer")
 
         # Generate the test statistic distribution
-        dist = []
+        self.dist = np.zeros(n)
         if monte_carlo:
             # Approximate the distribution of the test statistic by Monte Carlo
             if seed is not None:
                 np.random.seed(seed)
-            for _ in range(int(n)):
+            for i in range(int(n)):
                 data_ = np.random.permutation(data)
-                ts = self.statistic(*(data_[i] for i in slices))
-                dist.append(ts)
+                self.dist[i] = self.statistic(*(data_[i] for i in slices))
         else:
             # Compute the distribution of the test statistic exactly
-            for data_ in map(np.asarray, itertools.permutations(data)):
-                ts = self.statistic(*(data_[i] for i in slices))
-                dist.append(ts)
-        dist = np.asarray(dist)
+            for i, data_ in enumerate(map(np.asarray, permutations(data))):
+                self.dist[i] = self.statistic(*(data_[i] for i in slices))
 
         # Observed value of the test statistic
         statistic = self.statistic(*self.data)
 
         # Compute the p-value and the confidence interval bounds
         if tail == "two-sided":
-            p_value = np.sum(np.abs(dist) >= np.abs(statistic)) / n
-            lower = np.percentile(dist, q=100 * alpha / 2)
-            upper = np.percentile(dist, q=100 * (1 - alpha / 2))
+            p_value = np.sum(np.abs(self.dist) >= np.abs(statistic)) / n
+            lower = np.percentile(self.dist, q=100 * alpha / 2)
+            upper = np.percentile(self.dist, q=100 * (1 - alpha / 2))
         elif tail == "left":
-            p_value = np.sum(dist <= statistic) / n
+            p_value = np.sum(self.dist <= statistic) / n
             lower = -np.inf
-            upper = np.percentile(dist, q=100 * alpha)
+            upper = np.percentile(self.dist, q=100 * alpha)
         elif tail == "right":
-            p_value = np.sum(dist >= statistic) / n
-            lower = np.percentile(dist, q=100 * (1 - alpha))
+            p_value = np.sum(self.dist >= statistic) / n
+            lower = np.percentile(self.dist, q=100 * (1 - alpha))
             upper = np.inf
         else:
             raise ValueError(f"Unsupported value for parameter 'tail': {tail}")
 
-        # Store the test statistic distribution and return the test result
-        self.dist = np.sort(dist)
         return HypothesisTestResult(statistic=statistic, p_value=p_value,
                                     lower=lower, upper=upper)
