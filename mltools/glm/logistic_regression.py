@@ -98,10 +98,10 @@ class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
         optimizer: Optimizer
             Specifies the optimization algorithm used.
         args: sequence
-            Additional positional arguments to pass to the minimizer's
-            `minimize` method.
+            Additional positional arguments to pass to the optimizer's
+            `optimize` method.
         kwargs: dict
-            Additional keyword arguments to pass to the minimizer's `minimize`
+            Additional keyword arguments to pass to the optimizer's `optimize`
             method.
 
         Returns
