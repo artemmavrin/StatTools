@@ -106,8 +106,13 @@ class LinearRegression(GeneralizedLinearModel, Regressor):
         y = self._preprocess_target(y)
 
         if self.penalty is None and not self.mle:
-            # Least squares regression
+            # Ordinary least squares regression
             self._weights, *_ = np.linalg.lstsq(x, y, rcond=None)
+        elif self.penalty == "l2" and not self.mle:
+            # Ridge regression using least squares
+            a = x.T.dot(x) + self.lam * np.identity(x.T.dot(x).shape[0])
+            b = x.T.dot(y)
+            self._weights, *_ = np.linalg.lstsq(a, b, rcond=None)
         else:
             # Maximum likelihood estimation
             self.loss = MSELoss(x, y)
