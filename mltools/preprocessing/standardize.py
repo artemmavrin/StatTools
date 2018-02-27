@@ -1,12 +1,12 @@
-"""Defines the Normalizer class."""
+"""Defines the Standardizer class."""
 
 import numpy as np
 
 from .base import InvertibleDataTransformer
 
 
-class Normalizer(InvertibleDataTransformer):
-    """Translate and scale data columns to have mean 0 and variance 1."""
+class Standardizer(InvertibleDataTransformer):
+    """Standardize raw data to have mean 0 and variance 1."""
 
     # Vector of means of the feature columns of the training data
     _mean = None
@@ -18,7 +18,7 @@ class Normalizer(InvertibleDataTransformer):
     _idx = None
 
     def __init__(self, center=True, scale=True, reduce=True, bias=True):
-        """Initialize the Normalizer.
+        """Initialize the Standardizer.
 
         Parameters
         ----------
@@ -54,8 +54,8 @@ class Normalizer(InvertibleDataTransformer):
 
         Returns
         -------
-        self: Normalizer
-            This Normalizer instance.
+        self: Standardizer
+            This Standardizer instance.
         """
         x = self._preprocess_data(x, fitting=True)
 
@@ -67,18 +67,18 @@ class Normalizer(InvertibleDataTransformer):
         return self
 
     def transform(self, x):
-        """Normalize the data.
+        """Standardize the data.
 
         Parameters
         ----------
         x: array-like
-            Data matrix---2d array of shape (n_samples, n_features) to be
-            normalized.
+            Raw data matrix---2d array of shape (n_samples, n_features) to be
+            standardized.
 
         Returns
         -------
         z: array-like
-            Normalized data matrix.
+            Standardized data matrix.
         """
         if not self.is_fitted():
             raise self.unfitted_exception()
@@ -98,12 +98,12 @@ class Normalizer(InvertibleDataTransformer):
         return z
 
     def inv_transform(self, z):
-        """Un-normalize the data.
+        """Un-standardize the data.
 
         Parameters
         ----------
         z: array-like
-            Data matrix to be un-normalized.
+            Data matrix to be un-standardized.
             If `reduce` was False during fitting, `z` must have the same number
             of features (columns) as the training data.
             If `reduce` was True during fitting, `z` must have as many columns
@@ -112,7 +112,7 @@ class Normalizer(InvertibleDataTransformer):
         Returns
         -------
         x: array-like
-            Un-normalized data with as many columns as the training data.
+            Un-standardized data with as many columns as the training data.
         """
         if not self.is_fitted():
             raise self.unfitted_exception()

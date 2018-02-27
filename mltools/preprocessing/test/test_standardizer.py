@@ -3,10 +3,10 @@ import unittest
 import numpy as np
 
 from mltools.generic.fittable import UnfittedModelException
-from mltools.preprocessing import Normalizer
+from mltools.preprocessing import Standardizer
 
 
-class TestNormalizer(unittest.TestCase):
+class TestStandardizer(unittest.TestCase):
     def test_default_parameters(self):
         # Example input data
         x = [[0, 0, 0, 1],
@@ -24,25 +24,25 @@ class TestNormalizer(unittest.TestCase):
                   [2 / 3 / np.sqrt(2 / 9), 1 / np.sqrt(2 / 3)]]
 
         # Create Normalizer with default parameters
-        n = Normalizer()
+        standardize = Standardizer()
         # Ensure that the Normalizer cannot transform before training
         with self.assertRaises(UnfittedModelException):
-            n.transform(x)
+            standardize.transform(x)
         # Train and check attributes for correctness
-        n.fit(x)
-        np.testing.assert_almost_equal(n._mean, mean)
-        np.testing.assert_almost_equal(n._std, std)
-        np.testing.assert_equal(n._idx, idx)
-        self.assertEqual(n._n_features, n_features)
+        standardize.fit(x)
+        np.testing.assert_almost_equal(standardize._mean, mean)
+        np.testing.assert_almost_equal(standardize._std, std)
+        np.testing.assert_equal(standardize._idx, idx)
+        self.assertEqual(standardize._n_features, n_features)
 
         # Check transformation for correctness
-        z_tran = n.transform(x)
+        z_tran = standardize.transform(x)
         np.testing.assert_almost_equal(z_tran, z_true)
         np.testing.assert_almost_equal(z_tran.mean(axis=0), [0, 0])
         np.testing.assert_almost_equal(z_tran.var(axis=0), [1, 1])
 
         # Check inverse transformation for correctness
-        x_inv_tran = n.inv_transform(z_tran)
+        x_inv_tran = standardize.inv_transform(z_tran)
         np.testing.assert_almost_equal(x_inv_tran, x)
 
     def test_reduce_False_bias_False(self):
@@ -62,23 +62,23 @@ class TestNormalizer(unittest.TestCase):
                   [0, 2 / 3 / np.sqrt(1 / 3), 1, 1]]
 
         # Create Normalizer
-        n = Normalizer(reduce=False, bias=False)
+        standardize = Standardizer(reduce=False, bias=False)
 
         # Train and check attributes for correctness
-        n.fit(x)
-        np.testing.assert_almost_equal(n._mean, mean)
-        np.testing.assert_almost_equal(n._std, std)
-        np.testing.assert_equal(n._idx, idx)
-        self.assertEqual(n._n_features, n_features)
+        standardize.fit(x)
+        np.testing.assert_almost_equal(standardize._mean, mean)
+        np.testing.assert_almost_equal(standardize._std, std)
+        np.testing.assert_equal(standardize._idx, idx)
+        self.assertEqual(standardize._n_features, n_features)
 
         # Check transformation for correctness
-        z_tran = n.transform(x)
+        z_tran = standardize.transform(x)
         np.testing.assert_almost_equal(z_tran, z_true)
         np.testing.assert_almost_equal(z_tran.mean(axis=0), [0, 0, 0, 1])
         np.testing.assert_almost_equal(z_tran.var(axis=0, ddof=1), [0, 1, 1, 0])
 
         # Check inverse transformation for correctness
-        x_inv_tran = n.inv_transform(z_tran)
+        x_inv_tran = standardize.inv_transform(z_tran)
         np.testing.assert_almost_equal(x_inv_tran, x)
 
 

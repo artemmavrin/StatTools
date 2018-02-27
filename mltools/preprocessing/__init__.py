@@ -2,5 +2,5 @@
 
 from .base import DataTransformer
 from .base import InvertibleDataTransformer
-from .normalizer import Normalizer
+from .standardize import Standardizer
 from .pca import PCA
