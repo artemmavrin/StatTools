@@ -5,6 +5,7 @@ import abc
 import numpy as np
 
 from ..generic import Fittable
+from ..preprocessing import Standardizer
 
 
 def _add_intercept_column(x):
@@ -17,6 +18,12 @@ class GeneralizedLinearModel(Fittable, metaclass=abc.ABCMeta):
 
     # Indicates whether the module should fit an intercept term
     intercept = True
+
+    # Indicates whether data should be standardized before fitting/predicting
+    standardize = True
+
+    # Standardizer for standardizing data before fitting and predictions
+    _standardizer = None
 
     # Weights of the model
     _weights = None
@@ -46,6 +53,11 @@ class GeneralizedLinearModel(Fittable, metaclass=abc.ABCMeta):
             raise ValueError("Feature matrix must be 2-dimensional.")
         else:
             x = np.array(x)
+
+        if self.standardize:
+            if fitting:
+                self._standardizer = Standardizer().fit(x)
+            x = self._standardizer.transform(x)
 
         if self.intercept:
             x = _add_intercept_column(x)

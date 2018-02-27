@@ -6,7 +6,7 @@ import unittest
 import numpy as np
 
 from mltools.glm import LinearRegression
-from mltools.optimization import GradientDescent, NewtonRaphson
+from mltools.optimization import NewtonRaphson
 
 
 class TestLinearRegression(unittest.TestCase):
@@ -14,7 +14,7 @@ class TestLinearRegression(unittest.TestCase):
         """Numbers from http://onlinestatbook.com/2/regression/intro.html"""
         x = [1, 2, 3, 4, 5]
         y = [1, 2, 1.3, 3.75, 2.25]
-        lr = LinearRegression()
+        lr = LinearRegression(standardize=False)
         lr.fit(x, y)
         intercept, slope = lr._weights
         self.assertAlmostEqual(intercept, 0.785)
@@ -23,7 +23,7 @@ class TestLinearRegression(unittest.TestCase):
     def test_easy_1d_MLE(self):
         x = [1, 2, 3, 4, 5]
         y = [1, 2, 1.3, 3.75, 2.25]
-        lr = LinearRegression(mle=True)
+        lr = LinearRegression(standardize=False, mle=True)
         lr.fit(x, y, optimizer=NewtonRaphson(iterations=100))
         intercept, slope = lr._weights
         self.assertAlmostEqual(intercept, 0.785)
@@ -40,7 +40,7 @@ class TestLinearRegression(unittest.TestCase):
         ys = np.linspace(-5, 5, num=10)
         for y1, y2, y3 in itertools.product(ys, ys, ys):
             y = [y1, y2, y3]
-            lr = LinearRegression(intercept=False)
+            lr = LinearRegression(standardize=False, intercept=False)
             lr.fit(x, y)
             theta, phi = lr._weights
             self.assertAlmostEqual(theta, (y1 + 2 * y2 + y3) / 6)
@@ -48,11 +48,11 @@ class TestLinearRegression(unittest.TestCase):
 
     def test_easy_2d_MLE(self):
         x = [[1, 0], [2, -1], [1, 2]]
-        ys = np.linspace(-5, 5, num=10)
+        ys = np.linspace(-5, 5, num=5)
         for y1, y2, y3 in itertools.product(ys, ys, ys):
             y = [y1, y2, y3]
-            lr = LinearRegression(intercept=False, mle=True)
-            lr.fit(x, y, optimizer=GradientDescent(iterations=500))
+            lr = LinearRegression(standardize=False, intercept=False, mle=True)
+            lr.fit(x, y, optimizer=NewtonRaphson(iterations=100))
             theta, phi = lr._weights
             self.assertAlmostEqual(theta, (y1 + 2 * y2 + y3) / 6)
             self.assertAlmostEqual(phi, (2 * y3 - y2) / 5)

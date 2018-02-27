@@ -57,7 +57,7 @@ class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
     # Average cross entropy loss function
     loss = None
 
-    def __init__(self, penalty="l2", lam=0.1, intercept=True):
+    def __init__(self, penalty="l2", lam=0.1, intercept=True, standardize=True):
         """Initialize a logistic regression model.
 
         Parameters
@@ -79,6 +79,7 @@ class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
         self.penalty = penalty
         self.lam = lam
         self.intercept = intercept
+        self.standardize = standardize
 
     # The link function for logistic regression is the logit function, whose
     # inverse is the sigmoid function
