@@ -4,11 +4,11 @@ import unittest
 
 import numpy as np
 
-from mltools.hypothesis import PermutationTest
+from mltools.resampling import PermutationTest
 
 
 class TestPermutationTest(unittest.TestCase):
-    def test_i_lost_the_labels(self):
+    def test_vitamin_e_treatment(self):
         """Numerical example from Section 1.3, "Testing a Hypothesis", in
         Chapter 1 of
             Phillip Good. Permutation, parametric and bootstrap tests of
@@ -19,21 +19,17 @@ class TestPermutationTest(unittest.TestCase):
         This is a test of an exact permutation test, meaning that all possible
         permutations are to be sampled once.
         """
-        # Vitamin E treatment group
-        x = np.array([121, 118, 110])
+        # Vitamin E treatment group counts
+        treatment = [121, 118, 110]
 
-        # Control group
-        y = np.array([34, 12, 22])
+        # Control group counts
+        control = [34, 12, 22]
 
         # Test statistic: sum of counts in the treatment group
-        def statistic(treatment, _):
-            return np.sum(treatment)
+        pt = PermutationTest(treatment, control, stat="sum")
 
-        pt = PermutationTest(x, y, statistic=statistic)
-        res = pt.test(tail="right")
-
-        self.assertEqual(res.statistic, np.sum(x))
-        self.assertAlmostEqual(res.p_value, 1 / 20)
+        self.assertEqual(pt.observed, np.sum(treatment))
+        self.assertAlmostEqual(pt.p_value(tail="right"), 1 / 20)
 
 
 if __name__ == "__main__":
