@@ -2,4 +2,4 @@
 
 from .abline import abline
 from .classification import pca_label_plot
-from .qqplot import qqplot
+from .distributions import ecdf_plot, qq_plot
