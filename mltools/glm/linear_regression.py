@@ -52,8 +52,7 @@ class LinearRegression(GeneralizedLinearModel, Regressor):
     # of course its own inverse).
     _inv_link = staticmethod(lambda x: x)
 
-    def __init__(self, penalty=None, lam=0.1, intercept=True, standardize=True,
-                 mle=False):
+    def __init__(self, penalty=None, lam=0.1, intercept=True, mle=False):
         """Initialize a LinearRegression object.
 
         Parameters
@@ -79,7 +78,6 @@ class LinearRegression(GeneralizedLinearModel, Regressor):
         self.penalty = penalty
         self.lam = lam
         self.intercept = intercept
-        self.standardize = standardize
         self.mle = mle
 
     def fit(self, x, y, optimizer=None, *args, **kwargs):
