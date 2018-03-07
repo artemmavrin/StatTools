@@ -14,7 +14,11 @@ def sigmoid(x):
 
 
 class LogisticLoss(object):
-    """Average cross entropy loss function for logistic regression."""
+    """Average cross entropy loss function for logistic regression.
+
+    This is the negative of the log-likelihood function for the logistic
+    regression model.
+    """
 
     def __init__(self, x, y):
         """Initialize with the training data.
@@ -39,7 +43,7 @@ class LogisticLoss(object):
     def __call__(self, w):
         """Compute the average cross entropy loss for the training data."""
         logits = self.x.dot(w)
-        loss = np.sum(np.log1p(np.exp(-logits))) + np.sum(logits[self.y == 0])
+        loss = np.sum(np.log1p(np.exp(-logits)) + (1 - self.y) * logits)
         return loss / self.n_samples
 
     def grad(self, w):
