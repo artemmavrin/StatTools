@@ -2,13 +2,13 @@
 
 import numbers
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from .generalized_linear_model import GeneralizedLinearModel
 from ..generic import Regressor
 from ..optimization import Optimizer
 from ..regularization import lasso, ridge
+from ..visualization import func_plot
 
 
 class MSELoss(object):
@@ -274,26 +274,8 @@ class PolynomialRegression(LinearRegression):
         -------
         The matplotlib.axes.Axes object on which the plot was drawn.
         """
-        # Get axes if not provided
-        if ax is None:
-            ax = plt.gca()
-
-        # Get bounds if not provided
-        y_min, y_max = ax.get_ylim()
-        reset_y = False
-        if x_min is None or x_max is None:
-            x_min, x_max = ax.get_xlim()
-            reset_y = True
-
-        x = np.linspace(x_min, x_max, num=num)
-        y = self.predict(x)
-
-        ax.plot(x, y, **kwargs)
-        ax.set(xlim=(x_min, x_max))
-        if reset_y:
-            ax.set(ylim=(y_min, y_max))
-
-        return ax
+        return func_plot(func=self.predict, x_min=x_min, x_max=x_max, num=num,
+                         ax=ax, **kwargs)
 
     def poly_str(self, precision=3):
         """Get a string representation of the estimated polynomial model.

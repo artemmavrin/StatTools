@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as st
 
-from .abline import abline
+from .plotting import abline, func_plot
 
 
 def _rug_plot(data, ax=None, **kwargs):
@@ -107,17 +107,11 @@ def ecdf_plot(data, cdf=None, rug=False, cb=False, alpha=0.05, ax=None,
         else:
             raise TypeError("Parameter 'cdf' must be callable.")
 
-        x_min, x_max = ax.get_xlim()
-
         # Plot the CDF
-        x = np.linspace(x_min, x_max, num=200)
         cdf_params = {"ls": "--", "c": "r", "zorder": 1, "label": label}
         if cdf_kwargs is not None:
             cdf_params.update(cdf_kwargs)
-        ax.plot(x, cdf(x), **cdf_params)
-
-        # Reset x axis bounds
-        ax.set_xlim((x_min, x_max))
+        func_plot(cdf, num=200, ax=ax, **cdf_params)
 
     if cb:
         # Validate significance level `alpha`
