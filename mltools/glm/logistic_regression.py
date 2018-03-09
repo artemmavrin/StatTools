@@ -122,6 +122,8 @@ class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
         x = self._preprocess_x(x, fitting=True)
         y = self._preprocess_classes(y)
         y = self._preprocess_y(y)
+        if len(x) != len(y):
+            raise ValueError("'x' and 'y' must have the same length")
 
         # Maximum likelihood estimation by minimizing the average cross entropy
         self.loss = CrossEntropyLoss(x, y)

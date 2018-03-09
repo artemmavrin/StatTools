@@ -114,6 +114,8 @@ class LinearRegression(GeneralizedLinearModel, Regressor):
         # Validate input
         x = self._preprocess_x(x, fitting=True)
         y = self._preprocess_y(y)
+        if len(x) != len(y):
+            raise ValueError("'x' and 'y' must have the same length")
 
         if self.penalty is None:
             # Ordinary least squares estimation
