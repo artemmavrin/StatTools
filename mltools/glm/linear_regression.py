@@ -1,7 +1,8 @@
-"""Linear regression model."""
+"""Linear regression models."""
 
 import numbers
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from .generalized_linear_model import GeneralizedLinearModel
@@ -143,3 +144,134 @@ class LinearRegression(GeneralizedLinearModel, Regressor):
     def predict(self, x):
         """Predict the response variable."""
         return self.estimate(x)
+
+
+class PolynomialRegression(LinearRegression):
+    """Polynomial regression. This is a special case of linear regression, but
+    we just use numpy.polyfit to avoid dealing with Vandermonde matrices.
+    """
+
+    # Degree of the polynomial model.
+    deg: int = None
+
+    # Polynomial function corresponding to the coefficients of the model
+    poly: np.poly1d = None
+
+    def _preprocess_x(self, x, fitting=False) -> np.ndarray:
+        """Apply necessary validation and preprocessing to the explanatory
+        variable of a generalized linear model.
+
+        Parameters
+        ----------
+        x : array-like, shape (n, )
+            Explanatory variable.
+        fitting : bool, optional
+            Indicates whether preprocessing is being done during fitting
+
+        Returns
+        -------
+        x : numpy.ndarray, shape (n, )
+            Updated explanatory variable.
+        """
+        # Coerce to NumPy array
+        if np.ndim(x) == 1:
+            x = np.asarray(x)
+        else:
+            raise ValueError("Explanatory variable must be 1-dimensional.")
+
+        return x
+
+    def __init__(self, deg=2):
+        """Initialize a PolynomialRegression instance.
+
+        Parameters
+        ----------
+        deg : int
+            Degree of the polynomial model.
+        """
+        # Initialize the model
+        super(PolynomialRegression, self).__init__()
+
+        # Validate the degree
+        if not isinstance(deg, numbers.Integral) or deg < 1:
+            raise ValueError("'deg' must be a positive integer.")
+        self.deg = int(deg)
+
+    def fit(self, x, y, optimizer=None, *args, **kwargs):
+        # Validate input
+        x = self._preprocess_x(x, fitting=True)
+        y = self._preprocess_y(y)
+        if len(x) != len(y):
+            raise ValueError("'x' and 'y' must have the same length")
+
+        # Compute the least squares coefficients
+        coef = np.polyfit(x=x, y=y, deg=self.deg)
+        self.poly = np.poly1d(coef)
+        self.coef = np.flipud(coef)
+
+        self._fitted = True
+        return self
+
+    def estimate(self, x):
+        """Return the model's estimate for the given input data.
+
+        Parameters
+        ----------
+        x : array-like, shape (n, p)
+            Explanatory variable
+
+        Returns
+        -------
+        The polynomial model estimate.
+        """
+        # Check whether the model is fitted
+        if not self.is_fitted():
+            raise self.unfitted_exception()
+
+        # Validate input
+        x = self._preprocess_x(x, fitting=False)
+
+        return self.poly(x)
+
+    def fit_plot(self, xmin=None, xmax=None, num=500, ax=None, **kwargs):
+        """Plot the polynomial regression curve.
+
+        Parameters
+        ----------
+        xmin: float, optional
+            Smallest explanatory variable observation. If not provided, grabs
+            the smallest x value from the given axes.
+        xmax: float, optional
+            Biggest explanatory variable observation. If not provided, grabs the
+            biggest x value from the given axes.
+        num: int, optional
+            Number of points to plot.
+        ax: matplotlib.axes.Axes, optional
+            The axes on which to draw the plot.
+        kwargs: dict, optional
+            Additional keyword arguments to pass to plot()
+
+        Returns
+        -------
+        The matplotlib.axes.Axes object on which the plot was drawn.
+        """
+        # Get axes if not provided
+        if ax is None:
+            ax = plt.gca()
+
+        # Get bounds if not provided
+        ymin, ymax = ax.get_ylim()
+        reset_y = False
+        if xmin is None or xmax is None:
+            xmin, xmax = ax.get_xlim()
+            reset_y = True
+
+        x = np.linspace(xmin, xmax, num=num)
+        y = self.predict(x)
+
+        ax.plot(x, y, **kwargs)
+        ax.set(xlim=(xmin, xmax))
+        if reset_y:
+            ax.set(ylim=(ymin, ymax))
+
+        return ax
