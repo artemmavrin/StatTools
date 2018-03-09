@@ -198,6 +198,25 @@ class PolynomialRegression(LinearRegression):
         self.deg = int(deg)
 
     def fit(self, x, y, optimizer=None, *args, **kwargs):
+        """Fit the linear regression model.
+
+        Parameters
+        ----------
+        x : array-like, shape (n, p)
+            Explanatory variable.
+        y : array-like, shape (n, )
+            Response variable.
+        optimizer : Optimizer, optional
+            Ignored
+        args : sequence, optional
+            Ignored
+        kwargs : dict, optional
+            Ignored
+
+        Returns
+        -------
+        This PolynomialRegression instance is returned.
+        """
         # Validate input
         x = self._preprocess_x(x, fitting=True)
         y = self._preprocess_y(y)
@@ -218,7 +237,7 @@ class PolynomialRegression(LinearRegression):
         Parameters
         ----------
         x : array-like, shape (n, p)
-            Explanatory variable
+            Explanatory variable.
 
         Returns
         -------
@@ -233,22 +252,22 @@ class PolynomialRegression(LinearRegression):
 
         return self.poly(x)
 
-    def fit_plot(self, xmin=None, xmax=None, num=500, ax=None, **kwargs):
+    def fit_plot(self, x_min=None, x_max=None, num=500, ax=None, **kwargs):
         """Plot the polynomial regression curve.
 
         Parameters
         ----------
-        xmin: float, optional
+        x_min : float, optional
             Smallest explanatory variable observation. If not provided, grabs
             the smallest x value from the given axes.
-        xmax: float, optional
+        x_max : float, optional
             Biggest explanatory variable observation. If not provided, grabs the
             biggest x value from the given axes.
-        num: int, optional
+        num : int, optional
             Number of points to plot.
-        ax: matplotlib.axes.Axes, optional
+        ax : matplotlib.axes.Axes, optional
             The axes on which to draw the plot.
-        kwargs: dict, optional
+        kwargs : dict, optional
             Additional keyword arguments to pass to plot()
 
         Returns
@@ -260,24 +279,30 @@ class PolynomialRegression(LinearRegression):
             ax = plt.gca()
 
         # Get bounds if not provided
-        ymin, ymax = ax.get_ylim()
+        y_min, y_max = ax.get_ylim()
         reset_y = False
-        if xmin is None or xmax is None:
-            xmin, xmax = ax.get_xlim()
+        if x_min is None or x_max is None:
+            x_min, x_max = ax.get_xlim()
             reset_y = True
 
-        x = np.linspace(xmin, xmax, num=num)
+        x = np.linspace(x_min, x_max, num=num)
         y = self.predict(x)
 
         ax.plot(x, y, **kwargs)
-        ax.set(xlim=(xmin, xmax))
+        ax.set(xlim=(x_min, x_max))
         if reset_y:
-            ax.set(ylim=(ymin, ymax))
+            ax.set(ylim=(y_min, y_max))
 
         return ax
 
     def poly_str(self, precision=3):
-        """Get a string representation of the estimated polynomial model."""
+        """Get a string representation of the estimated polynomial model.
+
+        Parameters
+        ----------
+        precision : int
+            Number of decimal places of the coefficients to print.
+        """
         s = "y ="
         i = 0
         for c in self.coef:
