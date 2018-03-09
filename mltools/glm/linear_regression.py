@@ -275,3 +275,18 @@ class PolynomialRegression(LinearRegression):
             ax.set(ylim=(ymin, ymax))
 
         return ax
+
+    def poly_str(self, precision=3):
+        """Get a string representation of the estimated polynomial model."""
+        s = "y ="
+        i = 0
+        for c in self.coef:
+            if i == 0:
+                s += f" {c:.{precision}f}"
+            elif i == 1:
+                s += f" {'+' if c >= 0 else ''} {c:.{precision}f}x"
+            else:
+                s += f" {'+' if c >= 0 else ''} {c:.{precision}f}x^{i}"
+            i += 1
+
+        return s
