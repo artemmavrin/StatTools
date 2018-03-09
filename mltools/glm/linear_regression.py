@@ -277,23 +277,42 @@ class PolynomialRegression(LinearRegression):
         return func_plot(func=self.predict, x_min=x_min, x_max=x_max, num=num,
                          ax=ax, **kwargs)
 
-    def poly_str(self, precision=3):
+    def poly_str(self, precision=3, tex=True):
         """Get a string representation of the estimated polynomial model.
 
         Parameters
         ----------
-        precision : int
+        precision : int, optional
             Number of decimal places of the coefficients to print.
+        tex : bool, optional
+            Indicate whether to use TeX-style polynomial representations
+            (e.g., "$2 x^{2}$") vs Python-style polynomial representations
+            (e.g., "2 * x ** 2")
         """
-        s = "y ="
+        if tex:
+            s = "$y ="
+        else:
+            s = "y ="
+
         i = 0
         for c in self.coef:
             if i == 0:
                 s += f" {c:.{precision}f}"
             elif i == 1:
-                s += f" {'+' if c >= 0 else ''} {c:.{precision}f}x"
+                if tex:
+                    s += f" {'+' if c >= 0 else '-'} {abs(c):.{precision}f} x"
+                else:
+                    s += f" {'+' if c >= 0 else '-'} {abs(c):.{precision}f} * x"
             else:
-                s += f" {'+' if c >= 0 else ''} {c:.{precision}f}x^{i}"
+                if tex:
+                    s += f" {'+' if c >= 0 else '-'} "
+                    s += f"{abs(c):.{precision}f} x^{{{i}}}"
+                else:
+                    s += f" {'+' if c >= 0 else '-'} "
+                    s += f"{abs(c):.{precision}f} * x ** {i}"
             i += 1
+
+        if tex:
+            s += "$"
 
         return s
