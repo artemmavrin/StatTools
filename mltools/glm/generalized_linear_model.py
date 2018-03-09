@@ -1,4 +1,4 @@
-"""Defines the abstract GeneralizedLinearModel base class."""
+"""Defines the abstract base class for generalized linear models."""
 
 import abc
 
@@ -7,80 +7,83 @@ import numpy as np
 from ..generic import Fittable
 
 
-def _add_intercept_column(x):
-    """Add a column of 1's before the first column of a matrix."""
-    return np.c_[np.ones(np.shape(x)[0]), x]
-
-
 class GeneralizedLinearModel(Fittable, metaclass=abc.ABCMeta):
     """Generalized linear model abstract base class."""
 
     # Indicates whether the module should fit an intercept term
-    intercept = True
+    fit_intercept: bool = True
 
-    # Weights of the model
-    _weights = None
+    # Coefficients of the model
+    coef: np.ndarray = None
 
     # Number of columns of compatible feature matrices---to be determined during
     # model fitting
-    _n_features = None
+    _num_features: int = None
 
-    def _preprocess_features(self, x, fitting=False):
-        """Apply necessary validation and preprocessing to a feature matrix.
+    def _preprocess_x(self, x, fitting=False) -> np.ndarray:
+        """Apply necessary validation and preprocessing to the explanatory
+        variable of a generalized linear model.
 
         Parameters
         ----------
-        x : array-like
-            Feature matrix
+        x : array-like, shape (n, p)
+            Explanatory variable.
         fitting : bool, optional
             Indicates whether preprocessing is being done during fitting
 
         Returns
         -------
-        x : array-like
-            Updated feature matrix
+        x : numpy.ndarray, shape (n, p) or (n, p + 1)
+            Updated explanatory variable. If `intercept` is True, then a column
+            of 1's is prepended to `x`.
         """
+        # Coerce to NumPy array
         if np.ndim(x) == 1:
             x = np.atleast_2d(x).T
-        elif np.ndim(x) != 2:
-            raise ValueError("Feature matrix must be 2-dimensional.")
+        elif np.ndim(x) == 2:
+            x = np.asarray(x)
         else:
-            x = np.array(x)
+            raise ValueError("Explanatory variable must be 2-dimensional.")
 
-        if self.intercept:
-            x = _add_intercept_column(x)
+        # Prepend intercept column if necessary
+        if self.fit_intercept:
+            x = np.concatenate((np.ones((len(x), 1)), x), axis=1)
 
         if fitting:
-            self._n_features = x.shape[1]
+            self._num_features = x.shape[1]
         else:
-            if x.shape[1] != self._n_features:
-                raise ValueError(f"Expected {self._n_features} features, "
+            if x.shape[1] != self._num_features:
+                raise ValueError(f"Expected {self._num_features} columns, "
                                  f"but found {np.shape(x)[1]}")
 
         return x
 
     @staticmethod
-    def _preprocess_target(y):
-        """Apply necessary validation and preprocessing to a target vector.
+    def _preprocess_y(y) -> np.ndarray:
+        """Apply necessary validation and preprocessing to the response variable
+        of a generalized linear model.
 
         Parameters
         ----------
-        y : array-like
-            Target vector
+        y : array-like, shape (n, )
+            Response variable.
 
         Returns
         -------
-        y : array-like
-            Updated target vector
+        y : numpy.ndarray, shape (n, )
+            Updated response variable.
         """
-        if np.ndim(y) != 1:
-            raise ValueError("Target vector must be 1-dimensional.")
+        # Coerce to NumPy array
+        if np.ndim(y) == 1:
+            y = np.asarray(y)
+        else:
+            raise ValueError("Response variable must be 1-dimensional.")
 
-        return np.asarray(y)
+        return y
 
     @staticmethod
     @abc.abstractmethod
-    def _inv_link(*args):
+    def _inv_link(*args, **kwargs):
         """Inverse link function for the given generalized linear model."""
         pass
 
@@ -89,15 +92,19 @@ class GeneralizedLinearModel(Fittable, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        x: array-like
-            Feature matrix.
+        x : array-like, shape (n, p)
+            Explanatory variable
 
         Returns
         -------
-        f(x * w), where f is the model's inverse link function and w is the
-        model's weight vector.
+        link^{-1}(x * coef), where f is the model's inverse link function and
+        coef is the model's coefficient vector.
         """
+        # Check whether the model is fitted
         if not self.is_fitted():
             raise self.unfitted_exception()
-        x = self._preprocess_features(x, fitting=False)
-        return self._inv_link(x.dot(self._weights))
+
+        # Validate input
+        x = self._preprocess_x(x, fitting=False)
+
+        return self._inv_link(x.dot(self.coef))

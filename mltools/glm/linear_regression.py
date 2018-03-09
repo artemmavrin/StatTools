@@ -1,4 +1,6 @@
-"""Defines the LinearRegression class."""
+"""Linear regression model."""
+
+import numbers
 
 import numpy as np
 
@@ -9,112 +11,115 @@ from ..regularization import lasso, ridge
 
 
 class MSELoss(object):
-    """Mean squared error loss function for linear regression."""
+    """Mean squared error loss function for linear regression.
+
+    Minimizing this loss function is equivalent to maximizing the likelihood
+    function in the linear regression model.
+    """
 
     def __init__(self, x, y):
         """Initialize with the training data.
 
         Parameters
         ----------
-        x : array-like
-            Training data feature matrix.
-        y : array-like
-            Training data target vector.
+        x : array-like, shape (n, p)
+            Explanatory variable.
+        y : array-like, shape (n, )
+            Response variable.
         """
         self.x = np.asarray(x)
         self.y = np.asarray(y)
-        self.n_samples = self.x.shape[0]
 
-        if self.n_samples != self.y.shape[0]:
+        if len(x) != len(y):
             raise ValueError(
-                f"Unequal number of samples: "
-                f"{self.n_samples} feature samples, "
-                f"{self.y.shape[0]} target samples")
+                f"Unequal number of observations: {len(x)} != {len(y)}")
 
-    def __call__(self, w):
+        self.n = len(self.x)
+
+    def __call__(self, coef):
         """Compute the mean squared error loss for the training data."""
-        residuals = self.x.dot(w) - self.y
-        return residuals.dot(residuals) / self.n_samples
+        residuals = self.x.dot(coef) - self.y
+        return residuals.dot(residuals) / self.n
 
-    def grad(self, w):
+    def grad(self, coef):
         """Compute the gradient of the mean squared error loss."""
-        return 2 * self.x.T.dot(self.x.dot(w) - self.y) / self.n_samples
+        return 2 * self.x.T.dot(self.x.dot(coef) - self.y) / self.n
 
     def hess(self, _):
         """Compute the Hessian of the mean squared error loss."""
-        return 2 * self.x.T.dot(self.x) / self.n_samples
+        return 2 * self.x.T.dot(self.x) / self.n
 
 
 class LinearRegression(GeneralizedLinearModel, Regressor):
-    """Linear regression via least squares estimation."""
+    """Linear regression via least squares/maximum likelihood estimation."""
+
+    # Mean squared error loss function
+    loss: MSELoss = None
 
     # The link function for linear regression is the identity function (which is
     # of course its own inverse).
     _inv_link = staticmethod(lambda x: x)
 
-    def __init__(self, penalty=None, lam=0.1, intercept=True, mle=False):
+    def __init__(self, penalty=None, lam=0.1, fit_intercept=True):
         """Initialize a LinearRegression object.
 
         Parameters
         ----------
-        penalty: str, optional
-            Type of regularization to impose (none if None).
-            Currently supported:
-            None
-                No regularization
-            "l1"
-                L1 regularization (AKA LASSO regression)
-            "l2"
-                L2 regularization (AKA ridge regression)
-        lam: float, optional
-            Regularization parameter.
-        intercept: bool, optional
+        penalty : None, "l1", or "l2", optional
+            Type of regularization to impose on the loss function (if any).
+            If None:
+                No regularization.
+            If "l1":
+                L^1 regularization (LASSO - least absolute shrinkage and
+                selection operator)
+            If "l2":
+                L^2 regularization (ridge regression)
+        lam : positive float, optional
+            Regularization parameter. Ignored if `penalty` is None.
+        fit_intercept : bool, optional
             Indicates whether the module should fit an intercept term.
-        mle: bool, optional
-            Indicate whether to fit using maximum likelihood estimation instead
-            of least squares if `penalty` is None. If `penalty` is not None,
-            this parameter is ignored.
         """
         self.penalty = penalty
-        self.lam = lam
-        self.intercept = intercept
-        self.mle = mle
+        self.fit_intercept = fit_intercept
+
+        # Validate `lam`
+        if penalty is not None:
+            if not isinstance(lam, numbers.Real) or lam <= 0:
+                raise ValueError("Parameter 'lam' must be a positive float.")
+            else:
+                self.lam = float(lam)
 
     def fit(self, x, y, optimizer=None, *args, **kwargs):
-        """Train the linear regression model.
+        """Fit the linear regression model.
 
         Parameters
         ----------
-        x: array-like
-            Feature matrix
-        y: array-like
-            Target vector
-        optimizer: Optimizer
-            Specifies the optimization algorithm used.
-        args: sequence
-            Additional positional arguments to pass to the optimizer's
-            `optimize` method.
-        kwargs: dict
-            Additional keyword arguments to pass to the optimizer's `optimize`
-            method.
+        x : array-like, shape (n, p)
+            Explanatory variable.
+        y : array-like, shape (n, )
+            Response variable.
+        optimizer : Optimizer, optional
+            Specifies the optimization algorithm used. If the model's `penalty`
+            is None, this is ignored. Otherwise, this is required because it
+            specifies how to minimize the penalized loss function.
+        args : sequence, optional
+            Additional positional arguments to pass to `optimizer`'s optimize().
+        kwargs : dict, optional
+            Additional keyword arguments to pass to `optimizer`'s optimize().
 
         Returns
         -------
         This LinearRegression instance is returned.
         """
-        x = self._preprocess_features(x, fitting=True)
-        y = self._preprocess_target(y)
+        # Validate input
+        x = self._preprocess_x(x, fitting=True)
+        y = self._preprocess_y(y)
 
-        if self.penalty is None and not self.mle:
-            # Ordinary least squares regression
-            self._weights, *_ = np.linalg.lstsq(x, y, rcond=None)
-        elif self.penalty == "l2" and not self.mle:
-            # Ridge regression using least squares
-            a = x.T.dot(x) + self.lam * np.identity(x.T.dot(x).shape[0])
-            b = x.T.dot(y)
-            self._weights, *_ = np.linalg.lstsq(a, b, rcond=None)
+        if self.penalty is None:
+            # Ordinary least squares estimation
+            self.coef, *_ = np.linalg.lstsq(x, y, rcond=None)
         else:
-            # Maximum likelihood estimation
+            # Maximum likelihood estimation by minimizing the mean squared error
             self.loss = MSELoss(x, y)
 
             if self.penalty == "l1":
@@ -127,14 +132,12 @@ class LinearRegression(GeneralizedLinearModel, Regressor):
             if not isinstance(optimizer, Optimizer):
                 raise ValueError(f"Unknown minimization method: {optimizer}")
 
-            w0 = np.zeros(x.shape[1])
-
-            self._weights = optimizer.optimize(x0=w0, func=self.loss,
-                                               *args, **kwargs)
+            self.coef = optimizer.optimize(x0=np.zeros(x.shape[1]),
+                                           func=self.loss, *args, **kwargs)
 
         self._fitted = True
         return self
 
     def predict(self, x):
-        """Predict numeric values of the targets corresponding to the data."""
+        """Predict the response variable."""
         return self.estimate(x)

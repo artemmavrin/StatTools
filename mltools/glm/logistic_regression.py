@@ -1,5 +1,7 @@
 """Defines the LogisticRegression class."""
 
+import numbers
+
 import numpy as np
 
 from .generalized_linear_model import GeneralizedLinearModel
@@ -13,11 +15,11 @@ def sigmoid(x):
     return 1.0 / (1.0 + np.exp(np.negative(x)))
 
 
-class LogisticLoss(object):
+class CrossEntropyLoss(object):
     """Average cross entropy loss function for logistic regression.
 
-    This is the negative of the log-likelihood function for the logistic
-    regression model.
+    Minimizing this loss function is equivalent to maximizing the likelihood
+    function in the logistic regression model.
     """
 
     def __init__(self, x, y):
@@ -25,99 +27,104 @@ class LogisticLoss(object):
 
         Parameters
         ----------
-        x : array-like
-            Training data feature matrix.
-        y : array-like
-            Training data target vector.
+        x : array-like, shape (n, p)
+            Explanatory variable.
+        y : array-like, shape (n, )
+            Response variable.
         """
         self.x = np.asarray(x)
         self.y = np.asarray(y)
-        self.n_samples = self.x.shape[0]
 
-        if self.n_samples != self.y.shape[0]:
+        if len(x) != len(y):
             raise ValueError(
-                f"Unequal number of samples: "
-                f"{self.n_samples} feature samples, "
-                f"{self.y.shape[0]} target samples")
+                f"Unequal number of observations: {len(x)} != {len(y)}")
 
-    def __call__(self, w):
+        self.n = len(self.x)
+
+    def __call__(self, coef):
         """Compute the average cross entropy loss for the training data."""
-        logits = self.x.dot(w)
-        loss = np.sum(np.log1p(np.exp(-logits)) + (1 - self.y) * logits)
-        return loss / self.n_samples
+        logits = self.x.dot(coef)
+        return np.mean(np.log1p(np.exp(-logits)) + (1 - self.y) * logits)
 
-    def grad(self, w):
+    def grad(self, coef):
         """Compute the gradient of the average cross entropy loss."""
-        return -self.x.T.dot(self.y - sigmoid(self.x.dot(w))) / self.n_samples
+        return -self.x.T.dot(self.y - sigmoid(self.x.dot(coef))) / self.n
 
-    def hess(self, w):
+    def hess(self, coef):
         """Compute the Hessian of the average cross entropy loss."""
-        logits = self.x.dot(w)
+        logits = self.x.dot(coef)
         weights = np.diag(sigmoid(logits) * (1.0 - sigmoid(logits)))
-        return self.x.T.dot(weights).dot(self.x) / self.n_samples
+        return self.x.T.dot(weights).dot(self.x) / self.n
 
 
 class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
+    """Logistic regression via maximum likelihood estimation."""
+
     # Average cross entropy loss function
-    loss = None
-
-    def __init__(self, penalty="l2", lam=0.1, intercept=True):
-        """Initialize a logistic regression model.
-
-        Parameters
-        ----------
-        penalty: str, optional
-            Type of regularization to impose (none if None).
-            Currently supported:
-            None
-                No regularization
-            "l1"
-                L1 regularization (AKA LASSO regression)
-            "l2"
-                L2 regularization (AKA ridge regression)
-        lam: float, optional
-            Regularization parameter.
-        intercept: bool, optional
-            Indicates whether the module should fit an intercept term.
-        """
-        self.penalty = penalty
-        self.lam = lam
-        self.intercept = intercept
+    loss: CrossEntropyLoss = None
 
     # The link function for logistic regression is the logit function, whose
     # inverse is the sigmoid function
     _inv_link = staticmethod(sigmoid)
+
+    def __init__(self, penalty=None, lam=0.1, fit_intercept=True):
+        """Initialize a LogisticRegression object.
+
+        Parameters
+        ----------
+        penalty : None, "l1", or "l2", optional
+            Type of regularization to impose on the loss function (if any).
+            If None:
+                No regularization.
+            If "l1":
+                L^1 regularization (LASSO - least absolute shrinkage and
+                selection operator)
+            If "l2":
+                L^2 regularization (ridge regression)
+        lam : positive float, optional
+            Regularization parameter. Ignored if `penalty` is None.
+        fit_intercept : bool, optional
+            Indicates whether the module should fit an intercept term.
+        """
+        self.penalty = penalty
+        self.fit_intercept = fit_intercept
+
+        # Validate `lam`
+        if penalty is not None:
+            if not isinstance(lam, numbers.Real) or lam <= 0:
+                raise ValueError("Parameter 'lam' must be a positive float.")
+            else:
+                self.lam = float(lam)
 
     def fit(self, x, y, optimizer, *args, **kwargs):
         """Fit the logistic regression model.
 
         Parameters
         ----------
-        x: array-like
-            Feature matrix. Should be 2-dimensional of shape
-            (n_samples, n_features). If 1-dimensional, will be treated as if of
-            shape (n_samples, 1) (i.e., 1 feature column).
-        y: array-like
-            Target vector. Should consist of binary class labels of some kind.
-        optimizer: Optimizer
-            Specifies the optimization algorithm used.
-        args: sequence
-            Additional positional arguments to pass to the optimizer's
-            `optimize` method.
-        kwargs: dict
-            Additional keyword arguments to pass to the optimizer's `optimize`
-            method.
+        x : array-like, shape (n, p)
+            Explanatory variable.
+        y : array-like, shape (n, )
+            Response variable.
+        optimizer : Optimizer, optional
+            Specifies the optimization algorithm used. If the model's `penalty`
+            is None, this is ignored. Otherwise, this is required because it
+            specifies how to minimize the penalized loss function.
+        args : sequence, optional
+            Additional positional arguments to pass to `optimizer`'s optimize().
+        kwargs : dict, optional
+            Additional keyword arguments to pass to `optimizer`'s optimize().
 
         Returns
         -------
-        This LogisticRegression instance.
+        This LogisticRegression instance is returned.
         """
+        # Validate input
+        x = self._preprocess_x(x, fitting=True)
         y = self._preprocess_classes(y)
-        y = self._preprocess_target(y)
+        y = self._preprocess_y(y)
 
-        x = self._preprocess_features(x, fitting=True)
-
-        self.loss = LogisticLoss(x, y)
+        # Maximum likelihood estimation by minimizing the average cross entropy
+        self.loss = CrossEntropyLoss(x, y)
 
         if self.penalty == "l1":
             self.loss = lasso(self.lam, self.loss)
@@ -129,23 +136,23 @@ class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
         if not isinstance(optimizer, Optimizer):
             raise ValueError(f"Unknown minimization method: {optimizer}")
 
-        w0 = np.zeros(x.shape[1])
+        self.coef = optimizer.optimize(x0=np.zeros(x.shape[1]), func=self.loss,
+                                       *args, **kwargs)
 
-        self._weights = optimizer.optimize(x0=w0, func=self.loss,
-                                           *args, **kwargs)
         self._fitted = True
         return self
 
     def predict_prob(self, x):
-        """Predict probability that data corresponds to the first class label.
+        """Predict probability that the explanatory variable corresponds to the
+        first class label.
 
         Parameters
         ----------
-        x: array-like
-            Feature matrix.
+        x : array-like, shape (n, p)
+            Explanatory variable.
 
         Returns
         -------
-        P(y=C0|x)
+        P(y=C0|x) = sigmoid(x * coef)
         """
         return self.estimate(x)
