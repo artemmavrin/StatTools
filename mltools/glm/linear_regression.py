@@ -174,8 +174,8 @@ class PolynomialRegression(LinearRegression):
             Updated explanatory variable.
         """
         # Coerce to NumPy array
-        if np.ndim(x) == 1:
-            x = np.asarray(x)
+        if np.ndim(x) <= 1:
+            x = np.atleast_1d(x)
         else:
             raise ValueError("Explanatory variable must be 1-dimensional.")
 

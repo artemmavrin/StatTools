@@ -38,7 +38,7 @@ class GeneralizedLinearModel(Fittable, metaclass=abc.ABCMeta):
             of 1's is prepended to `x`.
         """
         # Coerce to NumPy array
-        if np.ndim(x) == 1:
+        if np.ndim(x) <= 1:
             x = np.atleast_2d(x).T
         elif np.ndim(x) == 2:
             x = np.asarray(x)
@@ -74,8 +74,8 @@ class GeneralizedLinearModel(Fittable, metaclass=abc.ABCMeta):
             Updated response variable.
         """
         # Coerce to NumPy array
-        if np.ndim(y) == 1:
-            y = np.asarray(y)
+        if np.ndim(y) <= 1:
+            y = np.atleast_1d(y)
         else:
             raise ValueError("Response variable must be 1-dimensional.")
 
