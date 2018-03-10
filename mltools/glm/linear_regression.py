@@ -1,5 +1,6 @@
 """Linear regression models."""
 
+import abc
 import numbers
 
 import numpy as np
@@ -30,11 +31,6 @@ class MSELoss(object):
         """
         self.x = np.asarray(x)
         self.y = np.asarray(y)
-
-        if len(x) != len(y):
-            raise ValueError(
-                f"Unequal number of observations: {len(x)} != {len(y)}")
-
         self.n = len(self.x)
 
     def __call__(self, coef):
@@ -51,47 +47,91 @@ class MSELoss(object):
         return 2 * self.x.T.dot(self.x) / self.n
 
 
-class LinearRegression(GeneralizedLinearModel, Regressor):
-    """Linear regression via least squares/maximum likelihood estimation."""
-
-    # Mean squared error loss function
-    loss: MSELoss = None
+class LinearRegression(GeneralizedLinearModel, Regressor,
+                       metaclass=abc.ABCMeta):
+    """Abstract base class for linear regression models."""
 
     # The link function for linear regression is the identity function (which is
-    # of course its own inverse).
+    # of course its own inverse)
     _inv_link = staticmethod(lambda x: x)
 
-    def __init__(self, penalty=None, lam=0.1, fit_intercept=True):
+    def __init__(self, fit_intercept=True):
         """Initialize a LinearRegression object.
 
         Parameters
         ----------
-        penalty : None, "l1", or "l2", optional
-            Type of regularization to impose on the loss function (if any).
-            If None:
-                No regularization.
-            If "l1":
-                L^1 regularization (LASSO - least absolute shrinkage and
-                selection operator)
-            If "l2":
-                L^2 regularization (ridge regression)
-        lam : positive float, optional
-            Regularization parameter. Ignored if `penalty` is None.
         fit_intercept : bool, optional
             Indicates whether the module should fit an intercept term.
         """
-        self.penalty = penalty
         self.fit_intercept = fit_intercept
 
-        # Validate `lam`
-        if penalty is not None:
-            if not isinstance(lam, numbers.Real) or lam <= 0:
-                raise ValueError("Parameter 'lam' must be a positive float.")
-            else:
-                self.lam = float(lam)
+    def predict(self, x):
+        """Predict the response variable corresponding to the explanatory
+        variable.
 
-    def fit(self, x, y, optimizer=None, *args, **kwargs):
-        """Fit the linear regression model.
+        Parameters
+        ----------
+        x : array-like, shape (n, p)
+            The explanatory variable.
+        """
+        return self.estimate(x)
+
+
+class LinearModel(LinearRegression):
+    """Linear regression via least squares/maximum likelihood estimation."""
+
+    def fit(self, x, y):
+        """Fit the linear model.
+
+        Parameters
+        ----------
+        x : array-like, shape (n, p)
+            Explanatory variable.
+        y : array-like, shape (n, )
+            Response variable.
+
+        Returns
+        -------
+        This LinearModel instance.
+        """
+        # Validate input
+        x = self._preprocess_x(x=x, fitting=True)
+        y = self._preprocess_y(y=y, x=x)
+
+        self.loss = MSELoss(x, y)
+        self.coef, *_ = np.linalg.lstsq(x, y, rcond=None)
+        self._fitted = True
+        return self
+
+
+class LASSO(LinearRegression):
+    """LASSO (least absolute shrinkage and selection operator) regression.
+    This is just adding an L^1 regularization term to the MSE loss for linear
+    regression.
+    """
+
+    # Regularization parameter
+    penalty: float = None
+
+    def __init__(self, penalty=0.1, fit_intercept=True):
+        """Initialize a LASSO object.
+
+        Parameters
+        ----------
+        penalty : positive float, optional
+            Regularization parameter.
+        fit_intercept : bool, optional
+            Indicates whether the module should fit an intercept term.
+        """
+        super(LASSO, self).__init__(fit_intercept=fit_intercept)
+
+        # Validate `lam`
+        if not isinstance(penalty, numbers.Real) or penalty <= 0:
+            raise ValueError("Parameter 'lam' must be a positive float.")
+        self.penalty = float(penalty)
+
+    def fit(self, x, y, optimizer, *args, **kwargs):
+        """Fit the LASSO model.
 
         Parameters
         ----------
@@ -100,9 +140,7 @@ class LinearRegression(GeneralizedLinearModel, Regressor):
         y : array-like, shape (n, )
             Response variable.
         optimizer : Optimizer, optional
-            Specifies the optimization algorithm used. If the model's `penalty`
-            is None, this is ignored. Otherwise, this is required because it
-            specifies how to minimize the penalized loss function.
+            Specifies how to minimize the penalized loss function.
         args : sequence, optional
             Additional positional arguments to pass to `optimizer`'s optimize().
         kwargs : dict, optional
@@ -110,45 +148,89 @@ class LinearRegression(GeneralizedLinearModel, Regressor):
 
         Returns
         -------
-        This LinearRegression instance is returned.
+        This LASSO instance.
         """
         # Validate input
-        x = self._preprocess_x(x, fitting=True)
-        y = self._preprocess_y(y)
-        if len(x) != len(y):
-            raise ValueError("'x' and 'y' must have the same length")
+        x = self._preprocess_x(x=x, fitting=True)
+        y = self._preprocess_y(y=y, x=x)
 
-        if self.penalty is None:
-            # Ordinary least squares estimation
-            self.coef, *_ = np.linalg.lstsq(x, y, rcond=None)
-        else:
-            # Maximum likelihood estimation by minimizing the mean squared error
-            self.loss = MSELoss(x, y)
+        self.loss = lasso(penalty=self.penalty, loss=MSELoss(x, y))
 
-            if self.penalty == "l1":
-                self.loss = lasso(self.lam, self.loss)
-            elif self.penalty == "l2":
-                self.loss = ridge(self.lam, self.loss)
-            elif self.penalty is not None:
-                raise ValueError(f"Unknown penalty type: {self.penalty}")
+        if not isinstance(optimizer, Optimizer):
+            raise ValueError(f"Unknown minimization method: {optimizer}")
 
-            if not isinstance(optimizer, Optimizer):
-                raise ValueError(f"Unknown minimization method: {optimizer}")
-
-            self.coef = optimizer.optimize(x0=np.zeros(x.shape[1]),
-                                           func=self.loss, *args, **kwargs)
+        self.coef = optimizer.optimize(x0=np.zeros(x.shape[1]), func=self.loss,
+                                       *args, **kwargs)
 
         self._fitted = True
         return self
 
-    def predict(self, x):
-        """Predict the response variable."""
-        return self.estimate(x)
+
+class Ridge(LinearRegression):
+    """Ridge regression. This is just adding an L^2 regularization term to the
+    MSE loss for linear regression.
+    """
+
+    # Regularization parameter
+    penalty: float = None
+
+    def __init__(self, penalty=0.1, fit_intercept=True):
+        """Initialize a RidgeRegression object.
+
+        Parameters
+        ----------
+        penalty : positive float, optional
+            Regularization parameter.
+        fit_intercept : bool, optional
+            Indicates whether the module should fit an intercept term.
+        """
+        super(Ridge, self).__init__(fit_intercept=fit_intercept)
+
+        # Validate `lam`
+        if not isinstance(penalty, numbers.Real) or penalty <= 0:
+            raise ValueError("Parameter 'lam' must be a positive float.")
+        self.penalty = float(penalty)
+
+    def fit(self, x, y, optimizer, *args, **kwargs):
+        """Fit the ridge regression model.
+
+        Parameters
+        ----------
+        x : array-like, shape (n, p)
+            Explanatory variable.
+        y : array-like, shape (n, )
+            Response variable.
+        optimizer : Optimizer, optional
+            Specifies how to minimize the penalized loss function.
+        args : sequence, optional
+            Additional positional arguments to pass to `optimizer`'s optimize().
+        kwargs : dict, optional
+            Additional keyword arguments to pass to `optimizer`'s optimize().
+
+        Returns
+        -------
+        This Ridge instance.
+        """
+        # Validate input
+        x = self._preprocess_x(x=x, fitting=True)
+        y = self._preprocess_y(y=y, x=x)
+
+        self.loss = ridge(penalty=self.penalty, loss=MSELoss(x, y))
+
+        if not isinstance(optimizer, Optimizer):
+            raise ValueError(f"Unknown minimization method: {optimizer}")
+
+        self.coef = optimizer.optimize(x0=np.zeros(x.shape[1]), func=self.loss,
+                                       *args, **kwargs)
+
+        self._fitted = True
+        return self
 
 
-class PolynomialRegression(LinearRegression):
-    """Polynomial regression. This is a special case of linear regression, but
-    we just use numpy.polyfit to avoid dealing with Vandermonde matrices.
+class PolynomialModel(LinearModel):
+    """Polynomial regression. This is a special case of the linear regression
+    model, but we just use numpy.polyfit to avoid dealing with Vandermonde
+    matrices.
     """
 
     # Degree of the polynomial model.
@@ -159,7 +241,7 @@ class PolynomialRegression(LinearRegression):
 
     def _preprocess_x(self, x, fitting=False) -> np.ndarray:
         """Apply necessary validation and preprocessing to the explanatory
-        variable of a generalized linear model.
+        variable of a polynomial model.
 
         Parameters
         ----------
@@ -181,7 +263,7 @@ class PolynomialRegression(LinearRegression):
 
         return x
 
-    def __init__(self, deg=2):
+    def __init__(self, deg):
         """Initialize a PolynomialRegression instance.
 
         Parameters
@@ -190,40 +272,32 @@ class PolynomialRegression(LinearRegression):
             Degree of the polynomial model.
         """
         # Initialize the model
-        super(PolynomialRegression, self).__init__()
+        super(PolynomialModel, self).__init__()
 
         # Validate the degree
         if not isinstance(deg, numbers.Integral) or deg < 1:
             raise ValueError("'deg' must be a positive integer.")
         self.deg = int(deg)
 
-    def fit(self, x, y, optimizer=None, *args, **kwargs):
-        """Fit the linear regression model.
+    def fit(self, x, y):
+        """Fit the polynomial regression model.
 
         Parameters
         ----------
-        x : array-like, shape (n, p)
+        x : array-like, shape (n, )
             Explanatory variable.
         y : array-like, shape (n, )
             Response variable.
-        optimizer : Optimizer, optional
-            Ignored
-        args : sequence, optional
-            Ignored
-        kwargs : dict, optional
-            Ignored
 
         Returns
         -------
         This PolynomialRegression instance is returned.
         """
         # Validate input
-        x = self._preprocess_x(x, fitting=True)
-        y = self._preprocess_y(y)
-        if len(x) != len(y):
-            raise ValueError("'x' and 'y' must have the same length")
+        x = self._preprocess_x(x=x, fitting=True)
+        y = self._preprocess_y(y=y, x=x)
 
-        # Compute the least squares coefficients
+        # Compute the least squares polynomial coefficients
         coef = np.polyfit(x=x, y=y, deg=self.deg)
         self.poly = np.poly1d(coef)
         self.coef = np.flipud(coef)
@@ -236,7 +310,7 @@ class PolynomialRegression(LinearRegression):
 
         Parameters
         ----------
-        x : array-like, shape (n, p)
+        x : array-like, shape (n, )
             Explanatory variable.
 
         Returns

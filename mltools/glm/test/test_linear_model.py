@@ -5,17 +5,17 @@ import unittest
 
 import numpy as np
 
-from mltools.glm import LinearRegression
+from mltools.glm import LinearModel
 
 
-class TestLinearRegression(unittest.TestCase):
+class TestLinearModel(unittest.TestCase):
     def test_easy_1d(self):
         """Numbers from http://onlinestatbook.com/2/regression/intro.html"""
         x = [1, 2, 3, 4, 5]
         y = [1, 2, 1.3, 3.75, 2.25]
-        lr = LinearRegression()
-        lr.fit(x, y)
-        intercept, slope = lr.coef
+        model = LinearModel()
+        model.fit(x, y)
+        intercept, slope = model.coef
         self.assertAlmostEqual(intercept, 0.785)
         self.assertAlmostEqual(slope, 0.425)
 
@@ -30,9 +30,9 @@ class TestLinearRegression(unittest.TestCase):
         ys = np.linspace(-5, 5, num=10)
         for y1, y2, y3 in itertools.product(ys, ys, ys):
             y = [y1, y2, y3]
-            lr = LinearRegression(fit_intercept=False)
-            lr.fit(x, y)
-            theta, phi = lr.coef
+            model = LinearModel(fit_intercept=False)
+            model.fit(x, y)
+            theta, phi = model.coef
             self.assertAlmostEqual(theta, (y1 + 2 * y2 + y3) / 6)
             self.assertAlmostEqual(phi, (2 * y3 - y2) / 5)
 

@@ -16,6 +16,9 @@ class GeneralizedLinearModel(Fittable, metaclass=abc.ABCMeta):
     # Coefficients of the model
     coef: np.ndarray = None
 
+    # Loss function for the model
+    loss = None
+
     # Number of columns of compatible feature matrices---to be determined during
     # model fitting
     _num_features: int = None
@@ -59,7 +62,7 @@ class GeneralizedLinearModel(Fittable, metaclass=abc.ABCMeta):
         return x
 
     @staticmethod
-    def _preprocess_y(y) -> np.ndarray:
+    def _preprocess_y(y, x=None) -> np.ndarray:
         """Apply necessary validation and preprocessing to the response variable
         of a generalized linear model.
 
@@ -67,6 +70,9 @@ class GeneralizedLinearModel(Fittable, metaclass=abc.ABCMeta):
         ----------
         y : array-like, shape (n, )
             Response variable.
+        x : array-like, shape (n, p)
+            Explanatory variable. If provided, it is checked whether `x` and `y`
+            have the same length (i.e., number of observations).
 
         Returns
         -------
@@ -78,6 +84,10 @@ class GeneralizedLinearModel(Fittable, metaclass=abc.ABCMeta):
             y = np.atleast_1d(y)
         else:
             raise ValueError("Response variable must be 1-dimensional.")
+
+        # Check if `x` and `y` contain the same number of observations
+        if x is not None and len(x) != len(y):
+            raise ValueError("'x' and 'y' must have the same length")
 
         return y
 

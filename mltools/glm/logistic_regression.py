@@ -34,11 +34,6 @@ class CrossEntropyLoss(object):
         """
         self.x = np.asarray(x)
         self.y = np.asarray(y)
-
-        if len(x) != len(y):
-            raise ValueError(
-                f"Unequal number of observations: {len(x)} != {len(y)}")
-
         self.n = len(self.x)
 
     def __call__(self, coef):
@@ -60,41 +55,40 @@ class CrossEntropyLoss(object):
 class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
     """Logistic regression via maximum likelihood estimation."""
 
-    # Average cross entropy loss function
-    loss: CrossEntropyLoss = None
+    # Regularization type
+    reg = None
+
+    # Regularization parameter
+    penalty: float = None
 
     # The link function for logistic regression is the logit function, whose
     # inverse is the sigmoid function
     _inv_link = staticmethod(sigmoid)
 
-    def __init__(self, penalty=None, lam=0.1, fit_intercept=True):
+    def __init__(self, reg=None, penalty=0.1, fit_intercept=True):
         """Initialize a LogisticRegression object.
 
         Parameters
         ----------
-        penalty : None, "l1", or "l2", optional
+        reg : None, "l1", or "l2", optional
             Type of regularization to impose on the loss function (if any).
-            If None:
-                No regularization.
-            If "l1":
-                L^1 regularization (LASSO - least absolute shrinkage and
-                selection operator)
-            If "l2":
-                L^2 regularization (ridge regression)
-        lam : positive float, optional
-            Regularization parameter. Ignored if `penalty` is None.
+            If None: No regularization.
+            If "l1": L^1 regularization.
+            If "l2": L^2 regularization.
+        penalty : positive float, optional
+            Regularization parameter. Ignored if `reg` is None.
         fit_intercept : bool, optional
             Indicates whether the module should fit an intercept term.
         """
-        self.penalty = penalty
+        self.reg = reg
         self.fit_intercept = fit_intercept
 
         # Validate `lam`
-        if penalty is not None:
-            if not isinstance(lam, numbers.Real) or lam <= 0:
+        if reg is not None:
+            if not isinstance(penalty, numbers.Real) or penalty <= 0:
                 raise ValueError("Parameter 'lam' must be a positive float.")
             else:
-                self.lam = float(lam)
+                self.penalty = float(penalty)
 
     def fit(self, x, y, optimizer, *args, **kwargs):
         """Fit the logistic regression model.
@@ -116,24 +110,22 @@ class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
 
         Returns
         -------
-        This LogisticRegression instance is returned.
+        This LogisticRegression instance.
         """
         # Validate input
-        x = self._preprocess_x(x, fitting=True)
-        y = self._preprocess_classes(y)
-        y = self._preprocess_y(y)
-        if len(x) != len(y):
-            raise ValueError("'x' and 'y' must have the same length")
+        x = self._preprocess_x(x=x, fitting=True)
+        y = self._preprocess_classes(target=y)
+        y = self._preprocess_y(y=y, x=x)
 
         # Maximum likelihood estimation by minimizing the average cross entropy
         self.loss = CrossEntropyLoss(x, y)
 
-        if self.penalty == "l1":
-            self.loss = lasso(self.lam, self.loss)
-        elif self.penalty == "l2":
-            self.loss = ridge(self.lam, self.loss)
-        elif self.penalty is not None:
-            raise ValueError(f"Unknown penalty type: {self.penalty}")
+        if self.reg == "l1":
+            self.loss = lasso(penalty=self.penalty, loss=self.loss)
+        elif self.reg == "l2":
+            self.loss = ridge(penalty=self.penalty, loss=self.loss)
+        elif self.reg is not None:
+            raise ValueError(f"Unknown penalty type: {self.reg}")
 
         if not isinstance(optimizer, Optimizer):
             raise ValueError(f"Unknown minimization method: {optimizer}")
