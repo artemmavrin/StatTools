@@ -196,6 +196,8 @@ def qq_plot(data, quantile=None, ax=None, diag=True, rug=False, square=False,
     # Percentiles for the theoretical distribution
     p = (np.arange(n) + 0.5) / n
 
+    # Determine the quantiles of the theoretical distribution
+    theoretical = True
     if quantile is None:
         # Normal QQ plot by default
         quantiles = st.norm(loc=data.mean(), scale=data.std()).ppf(p)
@@ -206,11 +208,13 @@ def qq_plot(data, quantile=None, ax=None, diag=True, rug=False, square=False,
             dist = getattr(st, quantile)
             quantile = dist(*dist.fit(data)).ppf
             quantiles = quantile(p)
+            theoretical = False
         else:
             raise ValueError(f"Cannot resolve distribution name {quantile}")
     elif isinstance(quantile, st.rv_continuous):
         # Fit a continuous distribution to the data
         quantiles = quantile(*quantile.fit(data)).ppf(p)
+        theoretical = False
     elif callable(quantile):
         quantiles = quantile(p)
     else:
@@ -222,8 +226,8 @@ def qq_plot(data, quantile=None, ax=None, diag=True, rug=False, square=False,
 
     # Default QQ plot scatter plot parameters. The default color represents the
     # distance to the diagonal line
-    scatter_params = {"zorder": 2, "c": np.abs(quantiles - data),
-                      "cmap": plt.get_cmap("coolwarm")}
+    scatter_params = {"zorder": 2, "alpha": 0.8, "c": np.abs(quantiles - data),
+                      "cmap": plt.get_cmap("coolwarm"), "edgecolor": "k"}
     scatter_params.update(kwargs)
     ax.scatter(data, quantiles, **scatter_params)
 
@@ -249,6 +253,9 @@ def qq_plot(data, quantile=None, ax=None, diag=True, rug=False, square=False,
         _rug_plot(data, ax=ax, **rug_kwargs)
 
     ax.set_xlabel("Observed Values")
-    ax.set_ylabel("Theoretical Quantiles")
+    if theoretical:
+        ax.set_ylabel("Theoretical Quantiles")
+    else:
+        ax.set_ylabel("Fitted Quantiles")
 
     return ax
