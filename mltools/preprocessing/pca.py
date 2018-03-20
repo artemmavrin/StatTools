@@ -39,7 +39,7 @@ class PCA(InvertibleDataTransformer):
         self._evals = evals[idx]
         self._evecs = np.atleast_1d(evecs[:, idx])
 
-        self._fitted = True
+        self.fitted = True
         return self
 
     def transform(self, x, dim=None):
@@ -58,7 +58,7 @@ class PCA(InvertibleDataTransformer):
         y: array-like
             Matrix whose columns are principal components.
         """
-        if not self.is_fitted():
+        if not self.fitted:
             raise self.unfitted_exception()
 
         x = self._preprocess_data(x)
@@ -87,7 +87,7 @@ class PCA(InvertibleDataTransformer):
         x: array-like
             Matrix with the full number of dimensions.
         """
-        if not self.is_fitted():
+        if not self.fitted:
             raise self.unfitted_exception()
 
         # Validate input

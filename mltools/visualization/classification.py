@@ -38,7 +38,7 @@ def pca_label_plot(x, y_true, y_pred, ax=None, pca=None, marker_dict=None):
     if pca is None:
         pca = PCA()
         pca.fit(x)
-    elif not isinstance(pca, PCA) or not pca._fitted:
+    elif not isinstance(pca, PCA) or not pca.fitted:
         raise TypeError("Parameter 'pca' must be a fitted PCA object.")
 
     if ax is None:

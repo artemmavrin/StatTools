@@ -63,7 +63,7 @@ class Standardizer(InvertibleDataTransformer):
         self._std = np.std(x, axis=0, ddof=0 if self.bias else 1)
         self._idx = np.where(self._std > 0)[0]
 
-        self._fitted = True
+        self.fitted = True
         return self
 
     def transform(self, x):
@@ -80,7 +80,7 @@ class Standardizer(InvertibleDataTransformer):
         z: array-like
             Standardized data matrix.
         """
-        if not self.is_fitted():
+        if not self.fitted:
             raise self.unfitted_exception()
 
         x = self._preprocess_data(x)
@@ -114,7 +114,7 @@ class Standardizer(InvertibleDataTransformer):
         x: array-like
             Un-standardized data with as many columns as the training data.
         """
-        if not self.is_fitted():
+        if not self.fitted:
             raise self.unfitted_exception()
 
         # Validate input

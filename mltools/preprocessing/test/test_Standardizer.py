@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from mltools.generic.fittable import UnfittedModelException
+from mltools.generic.fittable import UnfittedException
 from mltools.preprocessing import Standardizer
 
 
@@ -26,7 +26,7 @@ class TestStandardizer(unittest.TestCase):
         # Create Normalizer with default parameters
         standardize = Standardizer()
         # Ensure that the Normalizer cannot transform before training
-        with self.assertRaises(UnfittedModelException):
+        with self.assertRaises(UnfittedException):
             standardize.transform(x)
         # Train and check attributes for correctness
         standardize.fit(x)

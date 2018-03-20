@@ -114,7 +114,7 @@ class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
         """
         # Validate input
         x = self._preprocess_x(x=x, fitting=True)
-        y = self._preprocess_classes(target=y)
+        y = self._preprocess_classes(y=y)
         y = self._preprocess_y(y=y, x=x)
 
         # Maximum likelihood estimation by minimizing the average cross entropy
@@ -133,12 +133,12 @@ class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
         self.coef = optimizer.optimize(x0=np.zeros(x.shape[1]), func=self.loss,
                                        *args, **kwargs)
 
-        self._fitted = True
+        self.fitted = True
         return self
 
     def predict_prob(self, x):
-        """Predict probability that the explanatory variable corresponds to the
-        first class label.
+        """Predict probability that the explanatory variable corresponds to
+        class label C1.
 
         Parameters
         ----------
@@ -147,6 +147,6 @@ class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
 
         Returns
         -------
-        P(y=C0|x) = sigmoid(x * coef)
+        P(y=C1|x) = sigmoid(x * coef)
         """
         return self.estimate(x)

@@ -3,28 +3,47 @@
 import abc
 
 
-class UnfittedModelException(Exception):
-    """Exception raised when a model is used before being fitted."""
+class UnfittedException(Exception):
+    """Exception raised when a Fittable object is used before being fitted."""
 
-    def __init__(self, model):
-        message = f"This {model.__class__.__name__} object is not fitted."
-        super(UnfittedModelException, self).__init__(message)
+    def __init__(self, obj, message=None):
+        """Initialize the exception.
+
+        Parameters
+        ----------
+        obj : Fittable
+            The object being improperly used before fitting.
+        message : str, optional
+            Error message.
+        """
+        if message is None:
+            message = f"This {obj.__class__.__name__} object is not fitted."
+        super(UnfittedException, self).__init__(message)
 
 
 class Fittable(metaclass=abc.ABCMeta):
-    """Abstract mixin class for objects implementing a fit() method."""
-    # Indicator for whether this object has been fitted.
-    _fitted = False
+    """Abstract mixin class for objects implementing a fit() method.
+
+    Properties
+    ----------
+    fitted : bool
+        Indicates whether this object has been fitted.
+    """
+
+    fitted: bool = False
 
     @abc.abstractmethod
     def fit(self, *arg, **kwargs):
         """Fit this object to data."""
-        raise NotImplementedError()
+        pass
 
-    def is_fitted(self):
-        """Return whether this object has been fitted."""
-        return self._fitted
+    def unfitted_exception(self, message=None):
+        """Return an exception to be raised when a post-fitting method is called
+        before fitting.
 
-    def unfitted_exception(self):
-        """Return an unfitted model exception for this fittable object."""
-        return UnfittedModelException(self)
+        Parameters
+        ----------
+        message : str, optional
+            Error message.
+        """
+        return UnfittedException(obj=self, message=message)

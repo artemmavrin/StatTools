@@ -4,8 +4,8 @@ import functools
 
 import numpy as np
 
-from .classifier import BinaryClassifier
-from .classifier import Classifier
+from .estimators import BinaryClassifier
+from .estimators import Classifier
 
 
 class OVRClassifier(Classifier):
@@ -28,16 +28,17 @@ class OVRClassifier(Classifier):
 
         Parameters
         ----------
-        base: type
+        base : type
             A subclass of BinaryClassifier. Used to create binary classifiers
             for each class label.
-        args: sequence
+        args : sequence, optional
             Positional arguments for the binary classifier constructor.
-        kwargs: dict
+        kwargs : dict, optional
             Keyword arguments for the binary classifier constructor.
         """
         if not issubclass(base, BinaryClassifier):
-            raise TypeError("Parameter 'base' must be a binary classifier type")
+            raise TypeError(
+                "Parameter 'base' must be a binary classifier type.")
 
         self.base = functools.partial(base, *args, **kwargs)
 
@@ -46,16 +47,16 @@ class OVRClassifier(Classifier):
 
         Parameters
         ----------
-        x: array-like
-            Feature data matrix.
-        y: array-like
-            Target vector of class labels.
-        args: sequence
+        x : array-like
+            Explanatory variable.
+        y : array-like
+            Categorical response variable vector.
+        args : sequence, optional
             Positional arguments to pass to the underlying binary classifier's
-            `fit` method.
-        kwargs: dict
+            fit() method.
+        kwargs : dict, optional
             Keyword arguments to pass to the underlying binary classifier's
-            `fit` method.
+            fit() method.
 
         Returns
         -------
@@ -64,7 +65,7 @@ class OVRClassifier(Classifier):
         y = self._preprocess_classes(y)
 
         self._estimators = []
-        for i in range(len(self._classes)):
+        for i in range(len(self.classes)):
             clf = self.base()
             clf.fit(x, (y == i), *args, **kwargs)
             self._estimators.append(clf)
@@ -75,18 +76,18 @@ class OVRClassifier(Classifier):
 
         Parameters
         ----------
-        x: array-like
-            Feature matrix.
-        args: sequence
+        x : array-like
+            Explanatory variable.
+        args : sequence, optional
             Positional arguments to pass to each class label estimator's
             `predict_prob` method.
-        kwargs: dict
+        kwargs : dict, optional
             Keyword arguments to pass to each class label estimator's
             `predict_prob` method.
 
         Returns
         -------
-        Vector of class labels.
+        Vector of predicted class labels.
         """
-        est = [clf.predict_prob(x, *args, **kwargs) for clf in self._estimators]
-        return self._classes[np.argmax(est, axis=0)]
+        p = [clf.predict_prob(x, *args, **kwargs) for clf in self._estimators]
+        return self.classes[np.argmax(p, axis=0)]

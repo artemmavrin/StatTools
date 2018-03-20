@@ -10,6 +10,7 @@ from ..generic import Regressor
 from ..optimization import Optimizer
 from ..regularization import lasso, ridge
 from ..visualization import func_plot
+from ..utils import preprocess_data
 
 
 class MSELoss(object):
@@ -100,7 +101,7 @@ class LinearModel(LinearRegression):
 
         self.loss = MSELoss(x, y)
         self.coef, *_ = np.linalg.lstsq(x, y, rcond=None)
-        self._fitted = True
+        self.fitted = True
         return self
 
 
@@ -162,7 +163,7 @@ class LASSO(LinearRegression):
         self.coef = optimizer.optimize(x0=np.zeros(x.shape[1]), func=self.loss,
                                        *args, **kwargs)
 
-        self._fitted = True
+        self.fitted = True
         return self
 
 
@@ -223,7 +224,7 @@ class Ridge(LinearRegression):
         self.coef = optimizer.optimize(x0=np.zeros(x.shape[1]), func=self.loss,
                                        *args, **kwargs)
 
-        self._fitted = True
+        self.fitted = True
         return self
 
 
@@ -255,12 +256,7 @@ class PolynomialModel(LinearModel):
         x : numpy.ndarray, shape (n, )
             Updated explanatory variable.
         """
-        # Coerce to NumPy array
-        if np.ndim(x) <= 1:
-            x = np.atleast_1d(x)
-        else:
-            raise ValueError("Explanatory variable must be 1-dimensional.")
-
+        x = preprocess_data(x, max_ndim=1)
         return x
 
     def __init__(self, deg):
@@ -302,7 +298,7 @@ class PolynomialModel(LinearModel):
         self.poly = np.poly1d(coef)
         self.coef = np.flipud(coef)
 
-        self._fitted = True
+        self.fitted = True
         return self
 
     def estimate(self, x):
@@ -318,7 +314,7 @@ class PolynomialModel(LinearModel):
         The polynomial model estimate.
         """
         # Check whether the model is fitted
-        if not self.is_fitted():
+        if not self.fitted:
             raise self.unfitted_exception()
 
         # Validate input

@@ -5,6 +5,7 @@ import abc
 import numpy as np
 
 from ..generic import Fittable
+from ..utils import preprocess_data
 
 
 class GeneralizedLinearModel(Fittable, metaclass=abc.ABCMeta):
@@ -41,12 +42,7 @@ class GeneralizedLinearModel(Fittable, metaclass=abc.ABCMeta):
             of 1's is prepended to `x`.
         """
         # Coerce to NumPy array
-        if np.ndim(x) <= 1:
-            x = np.atleast_2d(x).T
-        elif np.ndim(x) == 2:
-            x = np.asarray(x)
-        else:
-            raise ValueError("Explanatory variable must be 2-dimensional.")
+        x = preprocess_data(x, max_ndim=2)
 
         # Prepend intercept column if necessary
         if self.fit_intercept:
@@ -79,16 +75,10 @@ class GeneralizedLinearModel(Fittable, metaclass=abc.ABCMeta):
         y : numpy.ndarray, shape (n, )
             Updated response variable.
         """
-        # Coerce to NumPy array
-        if np.ndim(y) <= 1:
-            y = np.atleast_1d(y)
+        if x is None:
+            y = preprocess_data(y, max_ndim=1)
         else:
-            raise ValueError("Response variable must be 1-dimensional.")
-
-        # Check if `x` and `y` contain the same number of observations
-        if x is not None and len(x) != len(y):
-            raise ValueError("'x' and 'y' must have the same length")
-
+            y, _ = preprocess_data(y, x, max_ndim=(1, None), equal_lengths=True)
         return y
 
     @staticmethod
@@ -111,7 +101,7 @@ class GeneralizedLinearModel(Fittable, metaclass=abc.ABCMeta):
         coef is the model's coefficient vector.
         """
         # Check whether the model is fitted
-        if not self.is_fitted():
+        if not self.fitted:
             raise self.unfitted_exception()
 
         # Validate input
