@@ -1,11 +1,11 @@
 """The Quenouille-Tukey jackknife for bias and standard error estimation."""
 
 import numbers
-from functools import partial
-from operator import methodcaller
 
 import numpy as np
 import scipy.stats as st
+
+from ..utils import validate_data, validate_stat
 
 
 class Jackknife(object):
@@ -33,8 +33,7 @@ class Jackknife(object):
         stat: callable or str
             The statistic to compute from the data. If this parameter is a
             string, then it should be the name of a NumPy array method (e.g.,
-            "mean" or "std"). In this case, there should be exactly one array in
-            the sequence `data`. If this parameter is a function, then it should
+            "mean" or "std"). If this parameter is a function, then it should
             accept as many arrays (and of the same shape) as are in `data`, and
             it should accept arrays of length one less than the arrays in
             `data`. The statistic is not assumed to be scalar-valued. This
@@ -43,33 +42,9 @@ class Jackknife(object):
             Additional keyword arguments to pass to the function represented by
             the parameter `stat`.
         """
-        # Ensure that there is some data
-        if len(data) == 0:
-            raise ValueError("No data provided")
-
-        # Coerce each data sample to a NumPy array
-        data = list(map(np.atleast_1d, data))
-
-        # Ensure every data array has the same length (i.e., sample size)
+        data = validate_data(*data, equal_lengths=True, return_list=True)
         n_sample = len(data[0])
-        if n_sample <= 1 or any(len(x) != n_sample for x in data):
-            raise ValueError(
-                "Data arrays must all have the same length (at least 2)")
-
-        # Ensure `stat` is either callable or the name of a NumPy array method
-        if callable(stat):
-            stat = partial(stat, **kwargs)
-        elif isinstance(stat, str):
-            if len(data) > 1:
-                raise ValueError("Parameter 'stat' cannot be a string if "
-                                 "multiple data arrays are given")
-            if (hasattr(np.ndarray, stat) and
-                    callable(getattr(np.ndarray, stat))):
-                stat = methodcaller(stat, **kwargs)
-            else:
-                raise AttributeError(f"NumPy arrays have no method {stat}")
-        else:
-            raise TypeError("Parameter 'stat' must be callable")
+        stat = validate_stat(stat)
 
         # We do not pre-allocate an array for the jackknife distribution of the
         # statistic because we do not know the dimension of `stat`'s output

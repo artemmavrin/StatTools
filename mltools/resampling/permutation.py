@@ -1,10 +1,11 @@
 """Implements permutations tests."""
 
 import numbers
-from functools import partial
 from itertools import accumulate, permutations
 
 import numpy as np
+
+from ..utils import validate_data, validate_stat
 
 # Number of permutations to randomly sample unless otherwise specified
 _DEFAULT_MONTE_CARLO_SIZE = 1000
@@ -71,30 +72,9 @@ class PermutationTest(object):
         if len(data) < 2:
             raise ValueError("Not enough data provided")
 
-        # Coerce each data sample to a NumPy array and save
-        self.data = list(map(np.atleast_1d, data))
-
-        # Ensure every data array has the same shape other than the first axis
-        shape = self.data[0].shape[1:]
-        if any(x.shape[1:] != shape for x in self.data):
-            raise ValueError("Incompatible data array shapes")
-
-        # Ensure `stat` is either callable or the name of a NumPy array method
-        if callable(stat):
-            stat = partial(stat, **kwargs)
-        elif isinstance(stat, str):
-            if (hasattr(np.ndarray, stat) and
-                    callable(getattr(np.ndarray, stat))):
-                name = stat
-
-                def func(*args, **kws):
-                    return getattr(args[0], name)(**kws)
-
-                stat = partial(func, **kwargs)
-            else:
-                raise AttributeError(f"NumPy arrays have no method {stat}")
-        else:
-            raise TypeError("Parameter 'stat' must be callable")
+        # Validate parameters
+        self.data = validate_data(*data, equal_shapes=True, return_list=True)
+        stat = validate_stat(stat)
 
         # Get indices corresponding to each data sample
         temp = [0] + list(accumulate(map(len, self.data)))
