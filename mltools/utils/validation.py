@@ -1,6 +1,7 @@
 """Functions for data validation."""
 
 import numbers
+from functools import partial
 
 import numpy as np
 
@@ -80,3 +81,37 @@ def validate_data(*data, max_ndim=None, equal_lengths=False,
         return data
     else:
         return data[0]
+
+
+def validate_stat(func, *args, **kwargs):
+    """Ensure that `func` is either callable or the name of a NumPy array
+    method.
+
+    Parameters
+    ----------
+    func : callable or str
+        A function or name of a NumPy array method.
+    args : sequence, optional
+        Positional arguments to pass to `func`.
+    kwargs : dict, optional
+        Keyword arguments to pass to `func`.
+
+    Returns
+    -------
+    """
+    if callable(func):
+        func = partial(func, *args, **kwargs)
+    elif isinstance(func, str):
+        if hasattr(np.ndarray, func) and callable(getattr(np.ndarray, func)):
+            name = func
+
+            def func(*pos, **kws):
+                return getattr(pos[0], name)(**kws)
+
+            func = partial(func, *args, **kwargs)
+        else:
+            raise AttributeError(f"NumPy arrays have no method {func}")
+    else:
+        raise TypeError("Parameter 'stat' must be callable")
+
+    return func
