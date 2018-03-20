@@ -5,7 +5,7 @@ import abc
 import numpy as np
 
 from ..generic import Fittable
-from ..utils import preprocess_data
+from ..utils import validate_data
 
 
 class GeneralizedLinearModel(Fittable, metaclass=abc.ABCMeta):
@@ -42,7 +42,7 @@ class GeneralizedLinearModel(Fittable, metaclass=abc.ABCMeta):
             of 1's is prepended to `x`.
         """
         # Coerce to NumPy array
-        x = preprocess_data(x, max_ndim=2)
+        x = validate_data(x, max_ndim=2)
 
         # Prepend intercept column if necessary
         if self.fit_intercept:
@@ -76,9 +76,9 @@ class GeneralizedLinearModel(Fittable, metaclass=abc.ABCMeta):
             Updated response variable.
         """
         if x is None:
-            y = preprocess_data(y, max_ndim=1)
+            y = validate_data(y, max_ndim=1)
         else:
-            y, _ = preprocess_data(y, x, max_ndim=(1, None), equal_lengths=True)
+            y, _ = validate_data(y, x, max_ndim=(1, None), equal_lengths=True)
         return y
 
     @staticmethod

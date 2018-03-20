@@ -5,7 +5,8 @@ import numbers
 import numpy as np
 
 
-def preprocess_data(*data, max_ndim=None, equal_lengths=False):
+def validate_data(*data, max_ndim=None, equal_lengths=False,
+                  equal_shapes=False, return_list=False):
     """Apply necessary preprocessing and validation to input data.
 
     Parameters
@@ -21,6 +22,9 @@ def preprocess_data(*data, max_ndim=None, equal_lengths=False):
         are coerced to have the maximum number of dimensions.
     equal_lengths : bool, optional
         Indicates whether each array in `data` should have the same length.
+    return_list : bool, optional
+        Indicates whether the data should be returned as a list no matter what,
+        even if it contains only one array.
 
     Returns
     -------
@@ -34,7 +38,7 @@ def preprocess_data(*data, max_ndim=None, equal_lengths=False):
         raise ValueError("No data provided.")
 
     # Coerce each array in `data` into a NumPy array
-    data = list(map(np.asarray, data))
+    data = list(map(np.atleast_1d, data))
 
     # Check for number of dimensions if necessary
     if max_ndim is not None:
@@ -55,11 +59,8 @@ def preprocess_data(*data, max_ndim=None, equal_lengths=False):
             for i, (x, d) in enumerate(zip(data, max_ndim)):
                 if d is None:
                     continue
-                if x.ndim < d:
-                    if d == 1:
-                        data[i] = np.atleast_1d(x)
-                    elif d == 2:
-                        data[i] = np.atleast_2d(x).T
+                if x.ndim < d == 2:
+                    data[i] = np.atleast_2d(x).T
                 elif x.ndim > d:
                     raise ValueError(
                         f"Array at index {i} has too many dimensions")
@@ -71,7 +72,11 @@ def preprocess_data(*data, max_ndim=None, equal_lengths=False):
         raise ValueError(
             "Each array in the data must have the same length.")
 
-    if len(data) > 1:
+    # Check for equal array shapes (except for length) if necessary
+    if equal_shapes and any(x.shape[1:] != data[0].shape[1:] for x in data[1:]):
+        raise ValueError("Incompatible data array shapes.")
+
+    if return_list or len(data) > 1:
         return data
     else:
         return data[0]

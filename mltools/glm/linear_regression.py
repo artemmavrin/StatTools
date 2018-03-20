@@ -10,7 +10,7 @@ from ..generic import Regressor
 from ..optimization import Optimizer
 from ..regularization import lasso, ridge
 from ..visualization import func_plot
-from ..utils import preprocess_data
+from ..utils import validate_data
 
 
 class MSELoss(object):
@@ -256,7 +256,7 @@ class PolynomialModel(LinearModel):
         x : numpy.ndarray, shape (n, )
             Updated explanatory variable.
         """
-        x = preprocess_data(x, max_ndim=1)
+        x = validate_data(x, max_ndim=1)
         return x
 
     def __init__(self, deg):
