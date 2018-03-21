@@ -1,47 +1,41 @@
 """Polynomial regression for fitting a curve through a 2D scatter plot."""
 
+import itertools
 import numbers
 
 import numpy as np
 
-from .glm import GLM
-from ..generic import Regressor
+from .linear import LinearRegression
 from ..utils import validate_data
 from ..visualization import func_plot
 
 
-class PolynomialRegression(GLM, Regressor):
-    """Polynomial regression. This is really a special case of the linear
-    regression model, but we just use numpy.polyfit to avoid dealing with
-    Vandermonde matrices.
+class PolynomialRegression(LinearRegression):
+    """Polynomial regression (this is really a special case of a linear
+    regression model).
     """
 
     # Degree of the polynomial model.
     deg: int = None
 
-    # Polynomial function corresponding to the coefficients of the model
-    poly: np.poly1d = None
-
-    # Although it isn't used in this implementation, the link function for
-    # polynomial regression is the identity function (since polynomial
-    # regression is a special case of linear regression)
-    _inv_link = staticmethod(lambda x: x)
-
-    def __init__(self, deg):
+    def __init__(self, deg, standardize=True):
         """Initialize a PolynomialRegression instance.
 
         Parameters
         ----------
         deg : int
             Degree of the polynomial model.
+        standardize : bool, optional
+            Indicates whether the explanatory and response variables should be
+            centered to have mean 0 and scaled to have variance 1.
         """
-        self.standardize = False
-        self.fit_intercept = True
-
         # Validate the degree
         if not isinstance(deg, numbers.Integral) or deg < 1:
             raise ValueError("'deg' must be a positive integer.")
         self.deg = int(deg)
+        
+        super(PolynomialRegression, self).__init__(standardize=standardize,
+                                                   fit_intercept=True)
 
     def fit(self, x, y):
         """Fit the polynomial regression model.
@@ -57,16 +51,12 @@ class PolynomialRegression(GLM, Regressor):
         -------
         This PolynomialRegression instance is returned.
         """
-        # Validate input
+        # Convert `x` to a Vandermonde matrix.
         x = validate_data(x, max_ndim=1)
-        y = self._preprocess_y(y=y, x=x)
-
-        # Compute the least squares polynomial coefficients
-        c = np.polyfit(x=x, y=y, deg=self.deg)
-        self.poly = np.poly1d(c)
-        self._coef = np.flipud(c)
-        self.fitted = True
-        return self
+        x = np.vander(x, N=(self.deg + 1), increasing=True)[:, 1:]
+        
+        # Fit the model
+        return super(PolynomialRegression, self).fit(x=x, y=y)
 
     def estimate(self, x):
         """Return the model's estimate for the given input data.
@@ -80,25 +70,12 @@ class PolynomialRegression(GLM, Regressor):
         -------
         The polynomial model estimate.
         """
-        # Check whether the model is fitted
-        if not self.fitted:
-            raise self.unfitted_exception()
-
-        # Validate input
+        # Convert `x` to a Vandermonde matrix.
         x = validate_data(x, max_ndim=1)
+        x = np.vander(x, N=(self.deg + 1), increasing=True)[:, 1:]
 
-        return self.poly(x)
-
-    def predict(self, x):
-        """Predict the response variable corresponding to the explanatory
-        variable.
-
-        Parameters
-        ----------
-        x : array-like, shape (n, p)
-            The explanatory variable.
-        """
-        return self.estimate(x)
+        # Return the model estimate
+        return super(PolynomialRegression, self).estimate(x=x)
 
     def fit_plot(self, x_min=None, x_max=None, num=500, ax=None, **kwargs):
         """Plot the polynomial regression curve.
@@ -142,8 +119,7 @@ class PolynomialRegression(GLM, Regressor):
         else:
             s = "y ="
 
-        i = 0
-        for c in self._coef:
+        for i, c in enumerate(itertools.chain([self.intercept], self.coef)):
             if i == 0:
                 s += f" {c:.{precision}f}"
             elif i == 1:
@@ -158,7 +134,6 @@ class PolynomialRegression(GLM, Regressor):
                 else:
                     s += f" {'+' if c >= 0 else '-'} "
                     s += f"{abs(c):.{precision}f} * x ** {i}"
-            i += 1
 
         if tex:
             s += "$"
