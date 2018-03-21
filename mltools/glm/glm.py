@@ -119,7 +119,7 @@ class GLM(Fittable, metaclass=abc.ABCMeta):
         if self.standardize:
             self._x_mean = x.mean(axis=0)
             self._x_std = x.std(axis=0, ddof=0)
-            self._x_std[self._x_std > 0] = 1.0
+            self._x_std[self._x_std == 0] = 1.0
             x = (x - self._x_mean) / self._x_std
         elif self.fit_intercept:
             x = np.concatenate((np.ones((n, 1)), x), axis=1)
