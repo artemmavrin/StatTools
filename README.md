@@ -29,3 +29,7 @@ To see the implementations in action, see the Jupyter notebooks in the [examples
 ### Dimensionality Reduction
 
 * [Principal component analysis applied to handwritten digits](examples/Principal%20Component%20Analysis.ipynb)
+
+### Simulation
+
+* [Simulating sample paths of Itô diffusions](examples/Ito%20Diffusions.ipynb)
