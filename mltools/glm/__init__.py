@@ -2,6 +2,7 @@
 
 from .linear import LinearRegression
 from .polynomial import PolynomialRegression
+from .elastic_net import ElasticNet
 from .linear_regression import LASSO
 from .linear_regression import LinearModel
 from .linear_regression import Ridge
