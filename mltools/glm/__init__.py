@@ -1,5 +1,6 @@
 """Package implementing estimators in the generalized linear model family."""
 
+from .linear import LinearRegression
 from .linear_regression import LASSO
 from .linear_regression import LinearModel
 from .linear_regression import PolynomialModel
