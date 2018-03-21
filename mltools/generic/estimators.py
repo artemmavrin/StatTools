@@ -5,6 +5,7 @@ import abc
 import numpy as np
 
 from .fittable import Fittable
+from ..utils import validate_data
 
 
 class Classifier(Fittable, metaclass=abc.ABCMeta):
@@ -105,3 +106,29 @@ class Regressor(Fittable, metaclass=abc.ABCMeta):
     def predict(self, *args, **kwargs):
         """Predict numeric values from input feature data."""
         pass
+
+    def mse(self, x, y, *args, **kwargs):
+        """Compute the mean squared error of the model for given values of the
+        explanatory and response variables.
+
+        Parameters
+        ----------
+        x : array-like, shape (n, p)
+            Explanatory variables.
+        y : array-like, shape (n,)
+            Response variable.
+        args : sequence, optional
+            Positional arguments to pass to this regressor's predict() method.
+        kwargs : dict, optional
+            Keyword arguments to pass to this regressor's predict() method.
+
+        Returns
+        -------
+        mse : float
+            The mean squared prediction error.
+        """
+        # Validate input
+        x, y = validate_data(x, y, max_ndim=(None, 1), equal_lengths=True)
+        y_hat = self.predict(x, *args, **kwargs)
+        return np.mean((y - y_hat) ** 2)
+
