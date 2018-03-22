@@ -1,4 +1,5 @@
-"""Linear regression with the elastic net penalty."""
+"""Linear regression with the elastic net penalty (i.e., a linear combination of
+L1 (LASSO) and L2 (ridge) penalties)."""
 
 import numbers
 import warnings
@@ -12,7 +13,7 @@ from ..generic import Regressor
 
 def _soft_threshold(a, b):
     """Soft-threshold operator."""
-    return np.sign(a) * (np.abs(a) - b) * (np.abs(a) > b)
+    return np.sign(a) * np.clip(np.abs(a) - b, a_min=0, a_max=None)
 
 
 def _enet_loss(x, y, coef, lam, alpha):
@@ -20,12 +21,49 @@ def _enet_loss(x, y, coef, lam, alpha):
     mse = np.mean((y - x.dot(coef)) ** 2)
     l1 = np.sum(np.abs(coef))
     l2 = np.sum(coef ** 2)
-    return 0.5 * mse + lam * (alpha * l1 + 0.5 * (1 - alpha) * l2)
+    return 0.5 * mse + lam * (alpha * l1 + (1 - alpha) * 0.5 * l2)
 
 
 def _enet_cd(x, y, coef0, lam, alpha, tol, max_iter, random, seed, callback):
     """Approximate the elastic net estimator for the linear model coefficients
     by coordinate descent.
+
+    Parameters
+    ----------
+    x : array-like, shape (n, p)
+        Explanatory variables (AKA features/predictors/regressors).
+    y : array-like, shape (n,)
+        Response variable (AKA targets).
+    coef0 : array-like, shape (p,)
+        Initial guess for the elastic net coefficient estimator.
+    lam : float (>0)
+        Regularization constant.
+    alpha : float (in [0, 1])
+        L1/L2 mixing parameter. alpha=1 means L1 penalty only, alpha=0 means L2
+        penalty only. 0<alpha<1 means weighted sum of L1 and L2 penalties.
+    tol : float (>0)
+        Convergence tolerance. The coordinate descent algorithm stops early if
+        the largest coefficient update in that iteration is less than
+        tol * (largest coefficient in that iteration).
+    max_iter : int (>0)
+        Maximum number of iterations of coordinate descent to perform.
+    random : bool
+        If True, coefficient selection is random during each iteration of the
+        coordinate descent algorithm. If False, coefficient selection is cyclic
+        (i.e., 0, 1, 2, ..., p-1, 0, 1, ...).
+    seed : int
+        Seed for a NumPy RandomState object. Used if `random` is True; otherwise
+        ignored.
+    callback : callable
+        Optional function of the standardized coefficients to call during every
+        iteration of the coordinate descent algorithm.
+
+    Returns
+    -------
+    coef : numpy.ndarray, shape (p,)
+        Approximate elastic net estimator for the linear model coefficients.
+    n_iter : int (>0)
+        Number of iterations of coordinate descent that were performed.
 
     References
     ----------
@@ -41,7 +79,7 @@ def _enet_cd(x, y, coef0, lam, alpha, tol, max_iter, random, seed, callback):
     tol = float(tol)
     max_iter = int(max_iter)
 
-    # Number of explanatory variables (AKA predictors)
+    # Number of explanatory variables
     p = x.shape[1]
 
     # Initialize a random number generator
@@ -53,9 +91,9 @@ def _enet_cd(x, y, coef0, lam, alpha, tol, max_iter, random, seed, callback):
         callback(coef)
 
     # Coordinate descent algorithm
-    i = 0
+    n_iter = 0
     while True:
-        i += 1
+        n_iter += 1
         coef_max = 0.0
         coef_update_max = 0.0
 
@@ -79,17 +117,57 @@ def _enet_cd(x, y, coef0, lam, alpha, tol, max_iter, random, seed, callback):
                 coef_update_max = np.abs(coef[j] - coef_j_prev)
 
         # Check for stopping criteria
-        if coef_max == 0 or coef_update_max / coef_max < tol or i >= max_iter:
+        if (coef_max == 0 or coef_update_max / coef_max < tol or
+                n_iter >= max_iter):
             break
 
-    return coef, i
+    return coef, n_iter
 
 
-def _enet_path(x, y, coef0, lam_min, lam_max, n_lam, alpha, tol, max_iter,
-               random, seed):
-    lambdas = np.geomspace(lam_max, lam_min, n_lam)
-    p = x.shape[1]
-    path = np.empty((n_lam, p))
+def _enet_path(x, y, coef0, lambdas, alpha, tol, max_iter, random, seed):
+    """Compute an elastic net regularization path.
+
+    Parameters
+    ----------
+    x : array-like, shape (n, p)
+        Explanatory variables (AKA features/predictors/regressors).
+    y : array-like, shape (n,)
+        Response variable (AKA targets).
+    coef0 : array-like, shape (p,)
+        Initial guess for the elastic net coefficient estimator.
+    lambdas : array-like, shape (k,)
+        List of positive floats representing different regularization constants.
+    alpha : float (in [0, 1])
+        L1/L2 mixing parameter. alpha=1 means L1 penalty only, alpha=0 means L2
+        penalty only. 0<alpha<1 means weighted sum of L1 and L2 penalties.
+    tol : float (>0)
+        Convergence tolerance. The coordinate descent algorithm stops early if
+        the largest coefficient update in that iteration is less than
+        tol * (largest coefficient in that iteration).
+    max_iter : int (>0)
+        Maximum number of iterations of coordinate descent to perform.
+    random : bool
+        If True, coefficient selection is random during each iteration of the
+        coordinate descent algorithm. If False, coefficient selection is cyclic
+        (i.e., 0, 1, 2, ..., p-1, 0, 1, ...).
+    seed : int
+        Seed for a NumPy RandomState object. Used if `random` is True; otherwise
+        ignored.
+
+    Returns
+    -------
+    path : numpy.ndarray, shape (k, p)
+        Matrix in which the ith row is the coefficient vector for the ith
+        lambda in `lambdas` (after sorting in reversed order). Moreover, the jth
+        column is the regularization path of the jth coefficient.
+    lambdas : array-like, shape (k,)
+        List of positive floats representing different regularization constants.
+    """
+    # Ensure `lambdas` is sorted in reverse order
+    lambdas = np.flipud(np.sort(lambdas))
+
+    # Compute the path
+    path = np.empty((len(lambdas), x.shape[1]))
     for i, lam in enumerate(lambdas):
         coef0, *_ = _enet_cd(x=x, y=y, coef0=coef0, lam=lam, alpha=alpha,
                              tol=tol, max_iter=max_iter, random=random,
@@ -100,8 +178,20 @@ def _enet_path(x, y, coef0, lam_min, lam_max, n_lam, alpha, tol, max_iter,
 
 
 class ElasticNet(LinearRegression, Regressor):
+    """Linear regression with the elastic net penalty."""
 
     def __init__(self, lam=0.1, alpha=1):
+        """Initialize an elastic net model.
+
+        Parameters
+        ----------
+        lam : float (>0)
+            Regularization constant.
+        alpha : float (in [0, 1])
+            L1/L2 mixing parameter. alpha=1 means L1 penalty only, alpha=0 means
+            L2 penalty only. 0<alpha<1 means weighted sum of L1 and L2
+            penalties.
+        """
         # Validate `lam`
         if not isinstance(lam, numbers.Real) or float(lam) <= 0:
             raise ValueError("Parameter 'lam' must be a positive float.")
@@ -124,11 +214,11 @@ class ElasticNet(LinearRegression, Regressor):
         x : array-like, shape (n, p)
             The explanatory variable matrix (AKA feature matrix or design
             matrix). Columns of `x` correspond to different explanatory
-            variables; rows of `x` correspond to different observations of the
-            explanatory variables (i.e., n=number of observations, p=number of
-            explanatory variables). If `x` is a scalar or one-dimensional array,
-            then it is interpreted as a single explanatory variable (i.e., a
-            matrix of shape (n, 1)).
+            variables (i.e., regressors/predictors); rows of `x` correspond to
+            different observations of the explanatory variables (i.e., n=number
+            of observations, p=number of explanatory variables). If `x` is a
+            scalar or one-dimensional array, then it is interpreted as a single
+            explanatory variable (i.e., a matrix of shape (n, 1)).
         y : array-like, shape (n,)
             The response variable vector (AKA target vector).
         tol : float, optional
@@ -239,22 +329,60 @@ class ElasticNet(LinearRegression, Regressor):
         coef0 = np.zeros(self._p)
 
         # Return the path
-        return _enet_path(x=x, y=y, coef0=coef0, lam_min=lam_min,
-                          lam_max=lam_max, n_lam=n_lam, alpha=self.alpha,
-                          tol=tol, max_iter=max_iter, random=random, seed=seed)
+        lambdas = np.geomspace(lam_min, lam_max, n_lam)
+        return _enet_path(x=x, y=y, coef0=coef0, lambdas=lambdas,
+                          alpha=self.alpha, tol=tol, max_iter=max_iter,
+                          random=random, seed=seed)
 
     def path_plot(self, x, y, lam_min, lam_max, n_lam=50, tol=1e-4,
                   max_iter=1000, random=False, seed=None, ax=None, **kwargs):
-        """Draw the regularization path for the elastic net model."""
+        """Draw the regularization path for the elastic net model.
+
+        Parameters
+        ----------
+        x : array-like, shape (n, p)
+            The explanatory variable matrix.
+        y : array-like, shape (n,)
+            The response variable vector.
+        lam_min : float
+            The minimum lambda.
+        lam_max : float
+            The maximum lambda.
+        n_lam : int, optional
+            Number of lambdas to consider.
+        tol : float, optional
+            Convergence tolerance.
+        max_iter : int, optional
+            Number of iterations of coordinate descent to perform.
+        random : bool, optional
+            If True, the coordinate along which to maximize is selected randomly
+            in each iteration. Otherwise, the coordinates are cycled through in
+            order.
+        seed : int, optional
+            Seed for a NumPy RandomState object. Used if `random` is True;
+            otherwise ignored.
+        ax : matplotlib.axes.Axes, optional
+            Axes on which to draw the plot.
+        kwargs : dict, optional
+            Additional keyword arguments to provide to the plot() function of
+            the axes.
+
+        Returns
+        -------
+        ax : matplotlib.axes.Axes
+            The axes on which the plot was drawn.
+        """
         path, lambdas = self.path(x=x, y=y, lam_min=lam_min, lam_max=lam_max,
                                   n_lam=n_lam, tol=tol, max_iter=max_iter,
                                   random=random, seed=seed)
         if ax is None:
             ax = plt.gca()
 
-        for i in range(self._p):
-            ax.plot(-np.log(lambdas), path[:, i], **kwargs)
+        for j in range(self._p):
+            ax.plot(-np.log(lambdas), path[:, j], **kwargs)
 
         ax.set(title="Regularization Path")
         ax.set(xlabel="$-\log(\lambda)$", ylabel="Standardized Coefficient")
         ax.set(xlim=(-np.log(lam_max), -np.log(lam_min)))
+
+        return ax
