@@ -3,6 +3,7 @@
 import numbers
 import warnings
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from .linear import LinearRegression
@@ -88,14 +89,14 @@ def _enet_path(x, y, coef0, lam_min, lam_max, n_lam, alpha, tol, max_iter,
                random, seed):
     lambdas = np.geomspace(lam_max, lam_min, n_lam)
     p = x.shape[1]
-    coefs = np.empty((n_lam, p))
+    path = np.empty((n_lam, p))
     for i, lam in enumerate(lambdas):
         coef0, *_ = _enet_cd(x=x, y=y, coef0=coef0, lam=lam, alpha=alpha,
                              tol=tol, max_iter=max_iter, random=random,
                              seed=seed, callback=None)
-        coefs[i, :] = coef0
+        path[i, :] = coef0
 
-    return coefs, lambdas
+    return path, lambdas
 
 
 class ElasticNet(LinearRegression, Regressor):
@@ -241,3 +242,19 @@ class ElasticNet(LinearRegression, Regressor):
         return _enet_path(x=x, y=y, coef0=coef0, lam_min=lam_min,
                           lam_max=lam_max, n_lam=n_lam, alpha=self.alpha,
                           tol=tol, max_iter=max_iter, random=random, seed=seed)
+
+    def path_plot(self, x, y, lam_min, lam_max, n_lam=50, tol=1e-4,
+                  max_iter=1000, random=False, seed=None, ax=None, **kwargs):
+        """Draw the regularization path for the elastic net model."""
+        path, lambdas = self.path(x=x, y=y, lam_min=lam_min, lam_max=lam_max,
+                                  n_lam=n_lam, tol=tol, max_iter=max_iter,
+                                  random=random, seed=seed)
+        if ax is None:
+            ax = plt.gca()
+
+        for i in range(self._p):
+            ax.plot(-np.log(lambdas), path[:, i], **kwargs)
+
+        ax.set(title="Regularization Path")
+        ax.set(xlabel="$-\log(\lambda)$", ylabel="Standardized Coefficient")
+        ax.set(xlim=(-np.log(lam_max), -np.log(lam_min)))
