@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from .linear import LinearRegression
-from ..generic import Regressor
 
 
 def _soft_threshold(a, b):
@@ -177,7 +176,7 @@ def _enet_path(x, y, coef0, lambdas, alpha, tol, max_iter, random, seed):
     return path, lambdas
 
 
-class ElasticNet(LinearRegression, Regressor):
+class ElasticNet(LinearRegression):
     """Linear regression with the elastic net penalty."""
 
     def __init__(self, lam=0.1, alpha=1):
