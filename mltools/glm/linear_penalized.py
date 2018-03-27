@@ -1,5 +1,4 @@
-"""Linear regression with the elastic net penalty (i.e., a linear combination of
-L1 (LASSO) and L2 (ridge) penalties)."""
+"""Linear models with regularization"""
 
 import numbers
 import warnings
@@ -7,11 +6,56 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .linear import LinearRegression
+from .linear import LinearModel
+
+
+class Ridge(LinearModel):
+    """Ridge regression: linear regression with an L2 penalty."""
+
+    def __init__(self, lam=0.1):
+        """Initialize a Ridge object.
+
+        Parameters
+        ----------
+        lam : float (>0)
+            Regularization constant.
+        """
+        # Validate `lam`
+        if not isinstance(lam, numbers.Real) or float(lam) <= 0:
+            raise ValueError("Parameter 'lam' must be a positive float.")
+
+        self.lam = float(lam)
+        super(Ridge, self).__init__(standardize=True)
+
+    def fit(self, x, y):
+        """Fit the ridge regression model.
+
+        Parameters
+        ----------
+        x : array-like, shape (n, p)
+            Explanatory variables.
+        y : array-like, shape (n,)
+            Response variable.
+
+        Returns
+        -------
+        This Ridge instance.
+        """
+        # Validate input
+        x = self._preprocess_x(x=x)
+        y = self._preprocess_y(y=y, x=x)
+
+        # Fit the model by least squares
+        a = x.T.dot(x) + self.lam * np.identity(self._p)
+        b = x.T.dot(y)
+
+        self._coef, *_ = np.linalg.lstsq(a=a, b=b, rcond=None)
+        self.fitted = True
+        return self
 
 
 def _soft_threshold(a, b):
-    """Soft-threshold operator."""
+    """Soft-threshold operator for the LASSO and elastic net."""
     return np.sign(a) * np.clip(np.abs(a) - b, a_min=0, a_max=None)
 
 
@@ -176,8 +220,10 @@ def _enet_path(x, y, coef0, lambdas, alpha, tol, max_iter, random, seed):
     return path, lambdas
 
 
-class ElasticNet(LinearRegression):
-    """Linear regression with the elastic net penalty."""
+class ElasticNet(LinearModel):
+    """Linear regression with the elastic net penalty (i.e., a linear
+    combination of L1 (LASSO) and L2 (ridge) penalties).
+    """
 
     def __init__(self, lam=0.1, alpha=1):
         """Initialize an elastic net model.

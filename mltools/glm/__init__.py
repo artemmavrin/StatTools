@@ -1,7 +1,7 @@
 """Package implementing estimators in the generalized linear model family."""
 
-from .elastic_net import ElasticNet
 from .linear import LinearRegression
 from .linear import PolynomialRegression
+from .linear_penalized import ElasticNet
+from .linear_penalized import Ridge
 from .logistic import LogisticRegression
-from .ridge import Ridge
