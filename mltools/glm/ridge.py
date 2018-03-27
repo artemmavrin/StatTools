@@ -4,10 +4,10 @@ import numbers
 
 import numpy as np
 
-from .linear import LinearRegression
+from .linear import LinearModel
 
 
-class Ridge(LinearRegression):
+class Ridge(LinearModel):
     """Ridge regression: linear regression with an L2 penalty."""
 
     def __init__(self, lam=0.1):
