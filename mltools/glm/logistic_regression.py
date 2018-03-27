@@ -4,7 +4,7 @@ import numbers
 
 import numpy as np
 
-from .generalized_linear_model import GeneralizedLinearModel
+from .glm import GLM
 from ..generic import BinaryClassifier
 from ..optimization import Optimizer
 from ..regularization import lasso, ridge
@@ -52,20 +52,21 @@ class CrossEntropyLoss(object):
         return self.x.T.dot(weights).dot(self.x) / self.n
 
 
-class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
+class LogisticRegression(GLM, BinaryClassifier):
     """Logistic regression via maximum likelihood estimation."""
 
     # Regularization type
     reg = None
 
-    # Regularization parameter
+    # Regularization type
     penalty: float = None
 
     # The link function for logistic regression is the logit function, whose
     # inverse is the sigmoid function
     _inv_link = staticmethod(sigmoid)
 
-    def __init__(self, reg=None, penalty=0.1, fit_intercept=True):
+    def __init__(self, reg=None, penalty=0.1, standardize=True,
+                 fit_intercept=True):
         """Initialize a LogisticRegression object.
 
         Parameters
@@ -77,10 +78,14 @@ class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
             If "l2": L^2 regularization.
         penalty : positive float, optional
             Regularization parameter. Ignored if `reg` is None.
+        standardize : bool, optional
+            Indicates whether the explanatory and response variables should be
+            centered to have mean 0 and scaled to have variance 1.
         fit_intercept : bool, optional
-            Indicates whether the module should fit an intercept term.
+            Indicates whether the model should fit an intercept term.
         """
         self.reg = reg
+        self.standardize = standardize
         self.fit_intercept = fit_intercept
 
         # Validate `lam`
@@ -113,9 +118,9 @@ class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
         This LogisticRegression instance.
         """
         # Validate input
-        x = self._preprocess_x(x=x, fitting=True)
+        x = self._preprocess_x(x=x)
         y = self._preprocess_classes(y=y)
-        y = self._preprocess_y(y=y, x=x)
+        y = self._preprocess_y(y=y, x=x, numerical=False)
 
         # Maximum likelihood estimation by minimizing the average cross entropy
         self.loss = CrossEntropyLoss(x, y)
@@ -130,8 +135,8 @@ class LogisticRegression(GeneralizedLinearModel, BinaryClassifier):
         if not isinstance(optimizer, Optimizer):
             raise ValueError(f"Unknown minimization method: {optimizer}")
 
-        self.coef = optimizer.optimize(x0=np.zeros(x.shape[1]), func=self.loss,
-                                       *args, **kwargs)
+        self._coef = optimizer.optimize(x0=np.zeros(x.shape[1]), func=self.loss,
+                                        *args, **kwargs)
 
         self.fitted = True
         return self
