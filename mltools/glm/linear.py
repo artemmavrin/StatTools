@@ -64,7 +64,7 @@ class LinearModel(GLM, Regressor, metaclass=abc.ABCMeta):
             Indicates whether the explanatory and response variables should be
             centered to have mean 0 and scaled to have variance 1.
         fit_intercept : bool, optional
-            Indicates whether the module should fit an intercept term.
+            Indicates whether the model should fit an intercept term.
         """
         self.standardize = standardize
         self.fit_intercept = fit_intercept
