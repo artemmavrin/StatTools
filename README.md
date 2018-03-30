@@ -30,6 +30,10 @@ To see the implementations in action, see the Jupyter notebooks in the [examples
 * [The bootstrap and the jackknife for standard error estimation](examples/Bootstrap%20and%20Jackknife.ipynb)
 * [Exact and Monte Carlo permutation tests](examples/Permutation%20Test.ipynb)
 
+### Ensemble Methods
+
+* [Using bagging to improve logistic regression accuracy](examples/Bagging%20Logistic%20Regression.ipynb)
+
 ### Data Visualization
 
 * [Drawing empirical distribution functions](examples/Empirical%20Distribution%20Functions.ipynb)
