@@ -77,6 +77,8 @@ class BaggingEstimator(metaclass=abc.ABCMeta):
         # Generate bootstrap estimators
         boot = Bootstrap(x, y, stat=stat, n_boot=n_boot, seed=seed)
         self._estimators = boot.dist
+
+        self.fitted = True
         return self
 
 
@@ -102,8 +104,12 @@ class BaggingClassifier(BaggingEstimator, Classifier):
         -------
         The model's class label predictions.
         """
-        p = [model.predict(x, *args, **kwargs) for model in self._estimators]
-        p = np.asarray(p)
+        # Ensure the model is fitted
+        if not self.fitted:
+            raise self.unfitted_exception()
+
+        p = np.asarray([model.predict(x, *args, **kwargs)
+                        for model in self._estimators])
         indices = np.empty(len(x), dtype=int)
         for i in range(len(x)):
             idx, counts = np.unique(p[:, i], return_counts=True)
@@ -133,5 +139,9 @@ class BaggingRegressor(BaggingEstimator, Regressor):
         -------
         The model's predictions.
         """
+        # Ensure the model is fitted
+        if not self.fitted:
+            raise self.unfitted_exception()
+
         p = [model.predict(x, *args, **kwargs) for model in self._estimators]
         return np.mean(p, axis=0)
