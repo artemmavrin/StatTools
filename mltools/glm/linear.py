@@ -271,7 +271,8 @@ class PolynomialRegression(LinearRegression):
         return s
 
 
-def _forward_stepwise_selection(x, y, threshold, solver, **kwargs):
+def _forward_stepwise_selection(x, y, f_threshold, max_features, solver,
+                                **kwargs):
     """Forward stepwise selection algorithm for feature selection in linear
     regression models.
 
@@ -281,8 +282,10 @@ def _forward_stepwise_selection(x, y, threshold, solver, **kwargs):
         Explanatory variables (already standardized).
     y : array-like, shape (n,)
         Response variable (already standardized).
-    threshold : float, optional
+    f_threshold : float, optional
         F-statistic threshold.
+    max_features : int, optional
+        Maximum number of features to include in the model.
     solver : None or Optimizer, optional
         Specify how to estimate the linear regression model coefficients.
     kwargs : dict, optional
@@ -296,11 +299,13 @@ def _forward_stepwise_selection(x, y, threshold, solver, **kwargs):
     """
     # Number of observations and features
     n, p = x.shape
+    if max_features is None or max_features > p:
+        max_features = p
 
     # Initialize the list of indices
     indices = []
 
-    for k in range(p):
+    for k in range(max_features):
         # Compute the residual sum of squares for the current model
         if len(indices) == 0:
             residuals = y
@@ -326,11 +331,11 @@ def _forward_stepwise_selection(x, y, threshold, solver, **kwargs):
             f_stat[i] = (n - k - 2) * (rss - rss_new) / rss_new
 
         # Check for early stopping
-        if np.max(f_stat) < threshold:
+        if f_threshold is not None and np.max(f_stat) < f_threshold:
             break
-        else:
-            indices.append(indices_rem[f_stat.argmax()])
-            indices.sort()
+
+        indices.append(indices_rem[f_stat.argmax()])
+        indices.sort()
 
     return indices
 
@@ -350,7 +355,8 @@ class FSSLinearRegression(LinearRegression):
         super(FSSLinearRegression, self).__init__(standardize=True,
                                                   fit_intercept=True)
 
-    def fit(self, x, y, threshold=4, solver=None, **kwargs):
+    def fit(self, x, y, f_threshold=None, max_features=None, solver=None,
+            **kwargs):
         """Fit the linear model using forward stepwise selection.
 
         Parameters
@@ -359,8 +365,10 @@ class FSSLinearRegression(LinearRegression):
             Explanatory variables.
         y : array-like, shape (n,)
             Response variable.
-        threshold : float, optional
+        f_threshold : float, optional
             F-statistic threshold.
+        max_features : int, optional
+            Maximum number of features to include in the model.
         solver : None or Optimizer, optional
             Specify how to estimate the linear regression model coefficients.
             None:
@@ -381,7 +389,8 @@ class FSSLinearRegression(LinearRegression):
         y = self._preprocess_y(y=y, x=x)
 
         # Get feature indices from the forward stepwise selection algorithm
-        indices = _forward_stepwise_selection(x, y, threshold, solver, **kwargs)
+        indices = _forward_stepwise_selection(x, y, f_threshold, max_features,
+                                              solver, **kwargs)
 
         # Initialize coefficients of the linear model
         self._coef = np.zeros(self._p)
