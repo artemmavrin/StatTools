@@ -34,6 +34,10 @@ To see the implementations in action, see the Jupyter notebooks in the [examples
 
 * [Using bagging to improve logistic regression accuracy](examples/Bagging%20Logistic%20Regression.ipynb)
 
+### Model Selection
+
+* [Forward stepwise selection for selecting features in a linear regression model](examples/Forward%20Stepwise%20Selection.ipynb)
+
 ### Data Visualization
 
 * [Drawing empirical distribution functions](examples/Empirical%20Distribution%20Functions.ipynb)

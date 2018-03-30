@@ -2,6 +2,7 @@
 
 from .linear import LinearRegression
 from .linear import PolynomialRegression
+from .linear import FSSLinearRegression
 from .linear_penalized import ElasticNet
 from .linear_penalized import Ridge
 from .logistic import LogisticRegression
