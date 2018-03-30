@@ -44,6 +44,30 @@ class Classifier(Fittable, metaclass=abc.ABCMeta):
         """Predict class labels from input feature data."""
         pass
 
+    def mcr(self, x, y, *args, **kwargs):
+        """Compute the misclassification rate of the model for given values of
+        the explanatory and response variables.
+
+        Parameters
+        ----------
+        x : array-like, shape (n, p)
+            Explanatory variables.
+        y : array-like, shape (n,)
+            Response variable.
+        args : sequence, optional
+            Positional arguments to pass to this regressor's predict() method.
+        kwargs : dict, optional
+            Keyword arguments to pass to this regressor's predict() method.
+
+        Returns
+        -------
+        mcr : float
+            The misclassification rate.
+        """
+        # Validate input
+        x, y = validate_data(x, y, max_ndim=(None, 1), equal_lengths=True)
+        return np.mean(y != self.predict(x, *args, **kwargs))
+
 
 class BinaryClassifier(Classifier):
     """Abstract base class for binary classifiers.
@@ -129,6 +153,29 @@ class Regressor(Fittable, metaclass=abc.ABCMeta):
         """
         # Validate input
         x, y = validate_data(x, y, max_ndim=(None, 1), equal_lengths=True)
-        y_hat = self.predict(x, *args, **kwargs)
-        return np.mean((y - y_hat) ** 2)
+        return np.mean((y - self.predict(x, *args, **kwargs)) ** 2)
+
+    def mae(self, x, y, *args, **kwargs):
+        """Compute the mean absolute error of the model for given values of the
+        explanatory and response variables.
+
+        Parameters
+        ----------
+        x : array-like, shape (n, p)
+            Explanatory variables.
+        y : array-like, shape (n,)
+            Response variable.
+        args : sequence, optional
+            Positional arguments to pass to this regressor's predict() method.
+        kwargs : dict, optional
+            Keyword arguments to pass to this regressor's predict() method.
+
+        Returns
+        -------
+        mae : float
+            The mean absolute prediction error.
+        """
+        # Validate input
+        x, y = validate_data(x, y, max_ndim=(None, 1), equal_lengths=True)
+        return np.mean(np.abs(y - self.predict(x, *args, **kwargs)))
 
