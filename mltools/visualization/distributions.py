@@ -147,20 +147,22 @@ def ecdf_plot(data, cdf=None, rug=False, cb=False, alpha=0.05, ax=None,
 
 def qq_plot(data, quantile=None, ax=None, diag=True, rug=False, square=False,
             diag_kwargs=None, rug_kwargs=None, **kwargs):
-    """Draw a QQ plot comparing a data sample to a theoretical distribution.
+    """Draw a QQ plot comparing two distributions.
 
     Parameters
     ----------
     data: array-like
         The data sample.
-    quantile: callable or scipy.stats.rv_continuous object, or str optional
+    quantile: callable, scipy.stats.rv_continuous, str, or array-like, optional
         The quantile function ("inverse" cumulative distribution function) of
         the theoretical distribution the data is being compared to.
         If this is not specified, the normal distribution quantile function will
         be used. If this is a scipy.stats.rv_continuous object, then a
         continuous distribution will be fit to the data, and the corresponding
         distribution's quantile function will be used. If this is a string, then
-        it should be the name of a scipy.stats.rv_continuous distribution.
+        it should be the name of a scipy.stats.rv_continuous distribution. If
+        this is an array, it should be a one-dimensional array of the same
+        length as `data`.
     ax: matplotlib axis, optional
         The axis on which to draw the QQ plot.
         If this is not specified, the current axis will be used.
@@ -198,6 +200,7 @@ def qq_plot(data, quantile=None, ax=None, diag=True, rug=False, square=False,
 
     # Determine the quantiles of the theoretical distribution
     theoretical = True
+    two_sample = False
     if quantile is None:
         # Normal QQ plot by default
         quantiles = st.norm(loc=data.mean(), scale=data.std()).ppf(p)
@@ -217,6 +220,13 @@ def qq_plot(data, quantile=None, ax=None, diag=True, rug=False, square=False,
         theoretical = False
     elif callable(quantile):
         quantiles = quantile(p)
+    elif hasattr(quantile, "__len__"):
+        if np.ndim(quantile) != 1:
+            raise ValueError("Quantile data must be 1-dimensional")
+        elif len(quantile) != n:
+            raise ValueError("Incompatible data and quantile arrays")
+        quantiles = np.sort(quantile)
+        two_sample = True
     else:
         t = type(quantile)
         raise TypeError(f"Invalid type for parameter 'quantile': {t}")
@@ -252,10 +262,14 @@ def qq_plot(data, quantile=None, ax=None, diag=True, rug=False, square=False,
             rug_kwargs = {}
         _rug_plot(data, ax=ax, **rug_kwargs)
 
-    ax.set_xlabel("Observed Values")
-    if theoretical:
-        ax.set_ylabel("Theoretical Quantiles")
+    if not two_sample:
+        ax.set_xlabel("Observed Values")
+        if theoretical:
+            ax.set_ylabel("Theoretical Quantiles")
+        else:
+            ax.set_ylabel("Fitted Quantiles")
     else:
-        ax.set_ylabel("Fitted Quantiles")
+        ax.set_xlabel("Sample 1")
+        ax.set_ylabel("Sample 2")
 
     return ax
