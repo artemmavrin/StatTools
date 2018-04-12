@@ -40,6 +40,7 @@ To see the implementations in action, see the Jupyter notebooks in the [examples
 
 ### Data Visualization
 
+* [Plotting lines and function curves](examples/Plotting%20Lines%20and%20Functions.ipynb)
 * [Drawing empirical distribution functions](examples/Empirical%20Distribution%20Functions.ipynb)
 * [Drawing quantile-quantile (QQ) plots](examples/Quantile-Quantile%20Plots.ipynb)
 
