@@ -1,76 +1,138 @@
-"""The non-parametric bootstrap for sampling distribution estimation."""
+"""Implementations of the non-parametric bootstrap for sampling distribution
+estimation.
+
+References
+----------
+Bradley Efron. "Bootstrap Methods: Another Look at the Jackknife". The Annals of
+    Statistics, Volume 7, Number 1 (1979), 1--26. doi:10.1214/aos/1176344552
+"""
 
 import numbers
 
 import numpy as np
+import scipy.stats as st
 
-from ..utils import validate_samples, validate_func
+from ..utils.validation import validate_samples, validate_func
+
+
+def bootstrap(*samples, n_boot, random_state=None, ret_list=False):
+    """Generate bootstrap samples by drawing with replacement.
+
+    Parameters
+    ----------
+    samples : sequence of arrays
+        Sequence of samples from which to draw bootstrap samples.
+    n_boot : int
+        Number of bootstrap samples to draw. This is necessarily a keyword
+        argument.
+    random_state : numpy.random.RandomState, int, or array-like, optional
+        If a numpy.random.RandomState object, this is used as the random number
+        generator for sampling with replacement. Otherwise, this is the seed
+        for a numpy.random.RandomState object to be used as the random number
+        generator. This is necessarily a keyword argument.
+    ret_list : bool, optional
+        Indicates whether the bootstrap samples should be returned as a list
+        even if there is only one original sample. This is necessarily a keyword
+        argument.
+
+    Returns
+    -------
+    boots : list
+        List of bootstrap samples drawn from each original sample.
+    """
+    # Validate the samples
+    samples = validate_samples(*samples, equal_lengths=True, ret_list=True)
+    n_samples = len(samples)
+    n_obs = len(samples[0])
+
+    # Ensure `n_boot` is a positive integer
+    if not isinstance(n_boot, numbers.Integral) or int(n_boot) <= 0:
+        raise TypeError("Parameter 'n_boot' must be a positive integer.")
+    n_boot = int(n_boot)
+
+    # Initialize the random number generator if necessary
+    if not isinstance(random_state, np.random.RandomState):
+        random_state = np.random.RandomState(random_state)
+
+    # Initialize arrays for the bootstrap samples
+    boots = [np.empty(((n_boot,) + samples[i].shape)) for i in range(n_samples)]
+
+    # Generate the bootstrap samples
+    for b in range(n_boot):
+        indices = random_state.randint(0, n_obs, n_obs)
+        boot = [sample.take(indices, axis=0) for sample in samples]
+        for i in range(n_samples):
+            boots[i][b] = boot[i]
+
+    # Return the bootstrap samples
+    if ret_list or n_samples > 1:
+        return boots
+    else:
+        return boots[0]
 
 
 class Bootstrap(object):
-    """Class for sampling distribution estimation using the bootstrap."""
+    """Class for generic sampling distribution estimation using the bootstrap.
 
-    # Bootstrap sampling distribution of the statistic
-    dist: np.ndarray
-
-    # Number of bootstrap samples
+    Properties
+    ----------
+    n_boot : int
+        Number of bootstrap samples.
+    samples_boot : list
+        A list in which the ith element consists of bootstrap samples drawn from
+        the ith original sample.
+    dist : numpy.ndarray
+        Bootstrap sampling distribution of the statistic.
+    observed : object
+        Observed value of the statistic.
+    """
     n_boot: int
-
-    # Observed value of the statistic
+    samples_boot: list
+    dist: np.ndarray
     observed: object
 
-    def __init__(self, *data, stat, n_boot=1000, seed=None, **kwargs):
+    def __init__(self, *samples, stat, n_boot, random_state=None, **kwargs):
         """Generate bootstrap estimates by sampling with replacement from a
         sample and re-computing the statistic each time.
 
         Parameters
         ----------
-        data: sequence of arrays
-            Data on which to perform the bootstrap resampling procedure. Each
+        samples: sequence of arrays
+            Samples on which to perform the bootstrap resampling procedure. Each
             array in this sequence should have the same length (i.e., sample
             size), but there is no restriction on the shape otherwise.
         stat: callable or str
             The statistic to compute from the data. If this parameter is a
             string, then it should be the name of a NumPy array method (e.g.,
             "mean" or "std"). If this parameter is a function, then it should
-            accept as many arrays (and of the same shape) as are in `data`. The
-            statistic is not assumed to be scalar-valued. This parameter is
+            accept as many arrays (and of the same shape) as are in `samples`.
+            The statistic is not assumed to be scalar-valued. This parameter is
             necessarily a keyword argument.
-        n_boot: int, optional
-            Number of bootstrap samples to generate. This is necessarily a
-            keyword argument.
-        seed: int, optional
-            Seed for a NumPy RandomState object. This is necessarily a keyword
+        n_boot : int
+            Number of bootstrap samples to draw. This is necessarily a keyword
             argument.
+        random_state : numpy.random.RandomState, int, or array-like, optional
+            If a numpy.random.RandomState object, this is used as the random
+            number generator for sampling with replacement. Otherwise, this is
+            the seed for a numpy.random.RandomState object to be used as the
+            random number generator. This is necessarily a keyword argument.
         kwargs: dict, optional
             Additional keyword arguments to pass to the function represented by
             the parameter `stat`.
         """
-        data = validate_samples(*data, equal_lengths=True, ret_list=True)
-        n_sample = len(data[0])
-        stat = validate_func(stat)
+        # Validate the statistic
+        stat = validate_func(stat, **kwargs)
 
-        # Ensure `n_boot` is a positive integer
-        if not isinstance(n_boot, numbers.Integral) or n_boot <= 0:
-            raise TypeError("Parameter 'n_boot' must be a positive integer.")
-        n_boot = int(n_boot)
+        # Generate bootstrap samples
+        self.samples_boot = bootstrap(*samples, n_boot=n_boot,
+                                      random_state=random_state, ret_list=True)
 
-        # We do not pre-allocate an array for the bootstrap distribution of the
-        # statistic because we do not know the dimension of `stat`'s output
-        # beforehand
-        dist_boot = []
+        # Compute the bootstrap sampling distribution
+        dist = [stat(*samples) for samples in zip(*self.samples_boot)]
 
-        # Perform the non-parametric bootstrap by repeatedly drawing bootstrap
-        # samples from the original data (with replacement) and computing the
-        # statistic for each bootstrap sample
-        rs = np.random.RandomState(seed)
-        for _ in range(n_boot):
-            indices = rs.randint(0, n_sample, n_sample)
-            dist_boot.append(stat(*(x.take(indices, axis=0) for x in data)))
-
-        # Store bootstrap empirical distribution and the observed statistic
-        self.dist = np.asarray(dist_boot)
-        self.observed = stat(*data)
+        # Store bootstrap sampling distribution and the observed statistic
+        self.dist = np.asarray(dist)
+        self.observed = stat(*samples)
 
         # Store the number of bootstrap samples
         self.n_boot = n_boot
@@ -82,3 +144,39 @@ class Bootstrap(object):
     def se(self):
         """Bootstrap standard error estimate."""
         return self.dist.std(axis=0, ddof=0)
+
+    def ci(self, alpha=0.05, kind="normal"):
+        """Two-sided bootstrap confidence interval.
+
+        Parameter
+        ---------
+        alpha : float in (0, 1), optional
+            1 - alpha is the coverage probability of the interval.
+        kind : "normal" or "pivotal", optional
+            Specifies the type of bootstrap confidence interval to compute.
+
+        Returns
+        -------
+        lower : float or numpy.ndarray
+            Lower endpoint of the confidence interval.
+        upper : float or numpy.ndarray
+            Upper endpoint of the confidence interval.
+        """
+        if not isinstance(alpha, numbers.Real) or not (0 < float(alpha) < 1):
+            raise ValueError(f"Invalid parameter 'alpha': {alpha}")
+        alpha = float(alpha)
+
+        if kind == "normal":
+            z = st.norm(0, 1).ppf(alpha / 2)
+            se = self.se()
+            lower = self.observed + z * se
+            upper = self.observed - z * se
+        elif kind == "pivotal":
+            q_lower = np.percentile(self.dist, (100 * (1 - alpha / 2)), axis=0)
+            q_upper = np.percentile(self.dist, (100 * alpha / 2), axis=0)
+            lower = 2 * self.observed - q_lower
+            upper = 2 * self.observed - q_upper
+        else:
+            raise ValueError(f"Invalid parameter 'kind': {kind}")
+
+        return lower, upper

@@ -44,7 +44,7 @@ class BaggingEstimator(metaclass=abc.ABCMeta):
 
         self.base = functools.partial(base, *args, **kwargs)
 
-    def fit(self, x, y, n_boot=100, seed=None, **kwargs):
+    def fit(self, x, y, n_boot=100, random_state=None, **kwargs):
         """Fit the bagging estimator.
 
         Parameters
@@ -55,7 +55,7 @@ class BaggingEstimator(metaclass=abc.ABCMeta):
             Response variable.
         n_boot : int, optional
             Number of bootstrap estimators to create.
-        seed : int, optional
+        random_state : int, optional
             Seed for the random number gnerator used to create bootstrap
             estimators.
         kwargs : dict, optional
@@ -75,7 +75,8 @@ class BaggingEstimator(metaclass=abc.ABCMeta):
             return self.base().fit(x, y, **kwargs)
 
         # Generate bootstrap estimators
-        boot = Bootstrap(x, y, stat=stat, n_boot=n_boot, seed=seed)
+        boot = Bootstrap(x, y, stat=stat, n_boot=n_boot,
+                         random_state=random_state)
         self._estimators = boot.dist
 
         self.fitted = True
