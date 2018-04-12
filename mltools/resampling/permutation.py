@@ -5,7 +5,7 @@ from itertools import accumulate, permutations
 
 import numpy as np
 
-from ..utils import validate_data, validate_stat
+from ..utils import validate_samples, validate_func
 
 # Number of permutations to randomly sample unless otherwise specified
 _DEFAULT_MONTE_CARLO_SIZE = 1000
@@ -73,8 +73,8 @@ class PermutationTest(object):
             raise ValueError("Not enough data provided")
 
         # Validate parameters
-        self.data = validate_data(*data, equal_shapes=True, return_list=True)
-        stat = validate_stat(stat)
+        self.data = validate_samples(*data, equal_shapes=True, ret_list=True)
+        stat = validate_func(stat)
 
         # Get indices corresponding to each data sample
         temp = [0] + list(accumulate(map(len, self.data)))

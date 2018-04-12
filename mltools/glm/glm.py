@@ -6,7 +6,7 @@ import warnings
 import numpy as np
 
 from ..generic import Fittable
-from ..utils import validate_data
+from ..utils import validate_samples
 
 
 class GLM(Fittable, metaclass=abc.ABCMeta):
@@ -92,7 +92,7 @@ class GLM(Fittable, metaclass=abc.ABCMeta):
         x : array-like
             Explanatory variable.
         """
-        x = validate_data(x, max_ndim=2)
+        x = validate_samples(x, n_dim=2)
         if x.shape[1] != self._p:
             raise ValueError("Wrong number of explanatory variables.")
 
@@ -112,7 +112,7 @@ class GLM(Fittable, metaclass=abc.ABCMeta):
         x : numpy.ndarray, shape (n, p) or (n, p + 1)
             Updated explanatory variable.
         """
-        x = validate_data(x, max_ndim=2)
+        x = validate_samples(x, n_dim=2)
         n, self._p = x.shape
 
         # Standardize or add an intercept column as needed
@@ -150,9 +150,9 @@ class GLM(Fittable, metaclass=abc.ABCMeta):
             Updated response variable.
         """
         if x is None:
-            y = validate_data(y, max_ndim=1)
+            y = validate_samples(y, n_dim=1)
         else:
-            y, _ = validate_data(y, x, max_ndim=(1, None), equal_lengths=True)
+            y, _ = validate_samples(y, x, n_dim=(1, None), equal_lengths=True)
 
         # Standardize if necessary
         if numerical and self.standardize:

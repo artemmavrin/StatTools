@@ -5,7 +5,7 @@ import abc
 import numpy as np
 
 from .fittable import Fittable
-from ..utils import validate_data
+from ..utils import validate_samples
 
 
 class Classifier(Fittable, metaclass=abc.ABCMeta):
@@ -65,7 +65,7 @@ class Classifier(Fittable, metaclass=abc.ABCMeta):
             The misclassification rate.
         """
         # Validate input
-        x, y = validate_data(x, y, max_ndim=(None, 1), equal_lengths=True)
+        x, y = validate_samples(x, y, n_dim=(None, 1), equal_lengths=True)
         return np.mean(y != self.predict(x, *args, **kwargs))
 
 
@@ -152,7 +152,7 @@ class Regressor(Fittable, metaclass=abc.ABCMeta):
             The mean squared prediction error.
         """
         # Validate input
-        x, y = validate_data(x, y, max_ndim=(None, 1), equal_lengths=True)
+        x, y = validate_samples(x, y, n_dim=(None, 1), equal_lengths=True)
         return np.mean((y - self.predict(x, *args, **kwargs)) ** 2)
 
     def mae(self, x, y, *args, **kwargs):
@@ -176,6 +176,6 @@ class Regressor(Fittable, metaclass=abc.ABCMeta):
             The mean absolute prediction error.
         """
         # Validate input
-        x, y = validate_data(x, y, max_ndim=(None, 1), equal_lengths=True)
+        x, y = validate_samples(x, y, n_dim=(None, 1), equal_lengths=True)
         return np.mean(np.abs(y - self.predict(x, *args, **kwargs)))
 

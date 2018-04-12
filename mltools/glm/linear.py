@@ -9,7 +9,7 @@ import numpy as np
 from .glm import GLM
 from ..generic import Regressor
 from ..optimization import Optimizer
-from ..utils import validate_data
+from ..utils import validate_samples
 from ..visualization import func_plot
 
 
@@ -181,7 +181,7 @@ class PolynomialRegression(LinearRegression):
         This PolynomialRegression instance is returned.
         """
         # Convert `x` to a Vandermonde matrix.
-        x = validate_data(x, max_ndim=1)
+        x = validate_samples(x, n_dim=1)
         x = np.vander(x, N=(self.deg + 1), increasing=True)[:, 1:]
 
         # Fit the model
@@ -201,7 +201,7 @@ class PolynomialRegression(LinearRegression):
         The polynomial model estimate.
         """
         # Convert `x` to a Vandermonde matrix.
-        x = validate_data(x, max_ndim=1)
+        x = validate_samples(x, n_dim=1)
         x = np.vander(x, N=(self.deg + 1), increasing=True)[:, 1:]
 
         # Return the model estimate

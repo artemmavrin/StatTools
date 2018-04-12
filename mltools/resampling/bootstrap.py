@@ -4,7 +4,7 @@ import numbers
 
 import numpy as np
 
-from ..utils import validate_data, validate_stat
+from ..utils import validate_samples, validate_func
 
 
 class Bootstrap(object):
@@ -46,9 +46,9 @@ class Bootstrap(object):
             Additional keyword arguments to pass to the function represented by
             the parameter `stat`.
         """
-        data = validate_data(*data, equal_lengths=True, return_list=True)
+        data = validate_samples(*data, equal_lengths=True, ret_list=True)
         n_sample = len(data[0])
-        stat = validate_stat(stat)
+        stat = validate_func(stat)
 
         # Ensure `n_boot` is a positive integer
         if not isinstance(n_boot, numbers.Integral) or n_boot <= 0:

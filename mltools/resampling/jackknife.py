@@ -5,7 +5,7 @@ import numbers
 import numpy as np
 import scipy.stats as st
 
-from ..utils import validate_data, validate_stat
+from ..utils import validate_samples, validate_func
 
 
 class Jackknife(object):
@@ -42,9 +42,9 @@ class Jackknife(object):
             Additional keyword arguments to pass to the function represented by
             the parameter `stat`.
         """
-        data = validate_data(*data, equal_lengths=True, return_list=True)
+        data = validate_samples(*data, equal_lengths=True, ret_list=True)
         n_sample = len(data[0])
-        stat = validate_stat(stat)
+        stat = validate_func(stat)
 
         # We do not pre-allocate an array for the jackknife distribution of the
         # statistic because we do not know the dimension of `stat`'s output
