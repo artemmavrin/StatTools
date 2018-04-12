@@ -3,6 +3,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from ..utils.validation import validate_func
+
 
 def abline(a, b, x_min=None, x_max=None, ax=None, **kwargs):
     """Draw a line with a prescribed slope and intercept.
@@ -60,8 +62,9 @@ def func_plot(func, x_min=None, x_max=None, num=50, ax=None, **kwargs):
 
     Parameters
     ----------
-    func : callable
-        The function to plot.
+    func : callable or str
+        The function to plot. If this is a string, it must be the name of a
+        NumPy array method.
     x_min : float, optional
         Smallest x value. If not provided, grabs the smallest x value from the
         given axes.
@@ -81,6 +84,8 @@ def func_plot(func, x_min=None, x_max=None, num=50, ax=None, **kwargs):
     -------
     The axis on which the line was drawn.
     """
+    func = validate_func(func)
+
     if ax is None:
         ax = plt.gca()
 
@@ -93,7 +98,10 @@ def func_plot(func, x_min=None, x_max=None, num=50, ax=None, **kwargs):
 
     # Plot the function
     x = np.linspace(x_min, x_max, num)
-    y = np.asarray(list(map(func, x)))
+    try:
+        y = func(x)
+    except TypeError:
+        y = np.asarray(list(map(func, x)))
     ax.plot(x, y, **kwargs)
 
     # Set the axes bounds
