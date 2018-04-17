@@ -27,7 +27,7 @@ class PermutationTest(object):
     """
 
     # Original data samples
-    data: list
+    samples: list
 
     # Empirical distribution of test statistics of permuted data
     dist: np.ndarray
@@ -38,56 +38,61 @@ class PermutationTest(object):
     # Observed value of the test statistic
     observed: object
 
-    def __init__(self, *data, stat, n_perm=None, seed=None, **kwargs):
+    # Indicator for whether an exact or a Monte Carlo test was performed
+    exact: bool
+
+    def __init__(self, *samples, stat, n_perm=None, random_state=None,
+                 **kwargs):
         """Initialize a PermutationTest object.
 
         Parameters
         ----------
-        data: sequence of arrays
+        samples : sequence of arrays
             Each array in this sequence represents a differently labelled
             sample. The arrays can have different length, but they should
             otherwise have the same shape.
-        stat: callable or str
+        stat : callable or str
             The statistic to compute from the data. If this parameter is a
             string, then it should be the name of a NumPy array method (e.g.,
             "mean" or "std"). In this case, the method will be called on the
             first array in the sequence of arrays only. Otherwise, this function
             should accept as many arrays (and of the same shape) as are in
-            `data`. The statistic is not assumed to be scalar-valued. This
+            `samples`. The statistic is not assumed to be scalar-valued. This
             parameter is necessarily a keyword argument.
-        n_perm: int, optional
+        n_perm : int, optional
             Number of permutations to sample. If this parameter is not provided
             and the data are small enough, then all possible permutations will
             be sampled exactly once. Otherwise, permutations will be sampled
             randomly with replacement. This is necessarily a keyword argument.
-        seed: int, optional
+        random_state : int, optional
             Seed for a NumPy RandomState object. Only used if using Monte Carlo
             sampling to approximate the test statistic distribution. This is
             necessarily a keyword argument.
-        kwargs: dict, optional
+        kwargs : dict, optional
             Additional keyword arguments to pass to the function represented by
             the parameter `stat`.
         """
         # Ensure that there are at least two samples
-        if len(data) < 2:
+        if len(samples) < 2:
             raise ValueError("Not enough data provided")
 
         # Validate parameters
-        self.data = validate_samples(*data, equal_shapes=True, ret_list=True)
-        stat = validate_func(stat)
+        self.samples = validate_samples(*samples, equal_shapes=True,
+                                        ret_list=True)
+        stat = validate_func(stat, **kwargs)
 
         # Get indices corresponding to each data sample
-        temp = [0] + list(accumulate(map(len, self.data)))
+        temp = [0] + list(accumulate(map(len, self.samples)))
         indices = [np.arange(i, j) for i, j in zip(temp, temp[1:])]
 
         # Combine the data samples into one sample
-        data = np.concatenate(self.data)
+        data = np.concatenate(self.samples)
 
         # Determine the method of generating the test statistic distribution
-        exact_test = False
+        self.exact = False
         if n_perm is None:
             if len(data) <= _MAX_EXACT_SIZE:
-                exact_test = True
+                self.exact = True
                 n_perm = np.math.factorial(len(data))
             else:
                 n_perm = _DEFAULT_MONTE_CARLO_SIZE
@@ -102,7 +107,7 @@ class PermutationTest(object):
         dist_perm = []
 
         # Generate the test statistic sampling distribution
-        if exact_test:
+        if self.exact:
             # Compute the distribution of the test statistic exactly
             for i, data_ in enumerate(map(np.asarray, permutations(data))):
                 data_perm = (data_.take(idx, axis=0) for idx in indices)
@@ -110,15 +115,16 @@ class PermutationTest(object):
         else:
             # Approximate the distribution of the test statistic by Monte Carlo
             # sampling
-            rs = np.random.RandomState(seed)
+            if not isinstance(random_state, np.random.RandomState):
+                random_state = np.random.RandomState(random_state)
             for i in range(n_perm):
-                data_ = rs.permutation(data)
+                data_ = random_state.permutation(data)
                 data_perm = (data_.take(idx, axis=0) for idx in indices)
                 dist_perm.append(stat(*data_perm))
 
-        # Store bootstrap empirical distribution and the observed statistic
+        # Store empirical distribution and the observed statistic
         self.dist = np.asarray(dist_perm)
-        self.observed = stat(*self.data)
+        self.observed = stat(*self.samples)
 
         # Store the number of permutations
         self.n_perm = n_perm
@@ -128,13 +134,13 @@ class PermutationTest(object):
 
         Parameters
         ----------
-        tail: "two-sided" (default), "left", or "right"
+        tail : "two-sided" (default), "left", or "right"
             Specifies the kind of p-value to report (i.e., one-tailed or
             two-tailed).
 
         Returns
         -------
-        p_value: float
+        p : float
             The p-value for the test.
         """
         dist = self.dist
@@ -143,12 +149,21 @@ class PermutationTest(object):
 
         # Compute the p-value
         if tail == "two-sided":
-            p_value = np.sum(np.abs(dist) >= np.abs(observed)) / n
+            if self.exact:
+                p = np.sum(np.abs(dist) >= np.abs(observed)) / n
+            else:
+                p = (1 + np.sum(np.abs(dist) >= np.abs(observed))) / (n + 1)
         elif tail == "left":
-            p_value = np.sum(dist <= observed) / n
+            if self.exact:
+                p = np.sum(dist <= observed) / n
+            else:
+                p = (1 + np.sum(dist <= observed)) / (n + 1)
         elif tail == "right":
-            p_value = np.sum(dist >= observed) / n
+            if self.exact:
+                p = np.sum(dist >= observed) / n
+            else:
+                p = (1 + np.sum(dist >= observed)) / (n + 1)
         else:
             raise ValueError(f"Unsupported value for parameter 'tail': {tail}")
 
-        return p_value
+        return p
