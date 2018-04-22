@@ -11,12 +11,15 @@ To see the implementations in action, see the Jupyter notebooks in the [examples
 **Linear Regression**
 
 * [Simple linear regression for fitting a line through a scatter plot](examples/Simple%20Linear%20Regression.ipynb)
-* [Polynomial regression for fitting a curve through a scatter plot](examples/Polynomial%20Regression.ipynb)
 
 **Penalized Linear Regression**
 
 * [Ridge regression](examples/Ridge%20Regression.ipynb)
 * [Elastic net regularization (including LASSO and ridge regression as special cases)](examples/Elastic%20Net.ipynb)
+
+**Smoothing**
+
+* [Fitting a polynomial curve to a scatter plot](examples/Polynomial%20Smoothing.ipynb)
 
 ### Classification
 
