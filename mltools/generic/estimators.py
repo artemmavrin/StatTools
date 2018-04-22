@@ -178,4 +178,3 @@ class Regressor(Fittable, metaclass=abc.ABCMeta):
         # Validate input
         x, y = validate_samples(x, y, n_dim=(None, 1), equal_lengths=True)
         return np.mean(np.abs(y - self.predict(x, *args, **kwargs)))
-
