@@ -2,6 +2,7 @@
 
 import abc
 
+from ..ensemble.bagging import BaggingRegressor
 from ..generic.estimators import Regressor
 from ..visualization import func_plot
 
@@ -33,3 +34,25 @@ class ScatterplotSmoother(Regressor, metaclass=abc.ABCMeta):
         """
         return func_plot(func=self.predict, x_min=x_min, x_max=x_max, num=num,
                          ax=ax, **kwargs)
+
+
+class BaggingSmoother(ScatterplotSmoother, BaggingRegressor):
+    """Use bagging (bootstrap aggregating) to potentially improve a smoother."""
+
+    def __init__(self, base: type, *args, **kwargs):
+        """Initialize a BaggingSmoother.
+
+        Parameters
+        ----------
+        base : ScatterplotSmoother subclass
+            The underlying smoother type.
+        args : sequence, optional
+            Positional arguments for the estimator constructor.
+        kwargs : dict, optional
+            Keyword arguments for the estimator constructor.
+        """
+        if not issubclass(base, ScatterplotSmoother):
+            raise TypeError(
+                "Parameter 'base' must be a ScatterplotSmoother subclass.")
+
+        super(BaggingSmoother, self).__init__(base, *args, **kwargs)
