@@ -8,48 +8,39 @@ import numpy as np
 from .smoothing import ScatterplotSmoother
 from ..utils.validation import validate_samples
 
-DEFAULT_N_BINS = 5
-
 
 class BinSmoother(ScatterplotSmoother):
     """Fit piecewise horizontal line segments to a scatterplot."""
 
-    n_bins: int
-    bins: np.ndarray
-    means: np.ndarray
+    n_bins: int = None
+    bins: np.ndarray = None
+    means: np.ndarray = None
 
-    def __init__(self, n_bins=None, bins=None):
-        """Initilize a BinSmoother object.
+    def __init__(self, bins=5):
+        """Initialize a BinSmoother object.
 
         Parameters
         ----------
-        n_bins : int, optional
-            Number of bins to partition the predictor into. Cannot be specified
-            if `bins` is specified.
-        bins : array-like of shape (N, ), optional
-            1-D array of bin endpoints. Cannot be specified if `n_bins` is
-            specified.
+        bins : int or array-like of shape (N, ), optional
+            If int:
+                Number of bins to partition the predictor into.
+            If array-like:
+                1-D array of bin endpoints.
         """
-        if n_bins is None and bins is None:
-            self.n_bins = DEFAULT_N_BINS
-            self.bins = None
-        elif n_bins is not None and bins is None:
-            if not isinstance(n_bins, numbers.Integral) or n_bins <= 0:
-                raise ValueError(
-                    "Parameter 'n_bins' must be a positive integer.")
-            self.n_bins = int(n_bins)
-            self.bins = None
-        elif n_bins is None and bins is not None:
-            if np.ndim(bins) != 1:
-                raise ValueError("Parameter 'bins' must be a 1-D array.")
-            self.bins = np.unique(np.asarray(bins, dtype=float))
-            self.bins[0] = -np.inf
-            self.bins[-1] = np.inf
-            self.n_bins = len(bins) - 1
+        if isinstance(bins, numbers.Integral):
+            self.n_bins = int(bins)
             if self.n_bins <= 0:
-                raise ValueError("Parameter 'bins' must have length >= 2.")
+                raise ValueError("Parameter 'bins' cannot be <= 0.")
+            self.bins = None
         else:
-            raise ValueError("Both 'n_bins' and 'bins' cannot be specified.")
+            if np.ndim(bins) == 1:
+                self.bins = np.unique(np.asarray(bins, dtype=float))
+                self.bins[0] = -np.inf
+                self.bins[-1] = np.inf
+                self.n_bins = len(bins) - 1
+            else:
+                raise ValueError(
+                    "Parameter 'bins' must be a positive int or a 1-D array.")
 
     def fit(self, x, y):
         """Compute the binned means of the response vector.
