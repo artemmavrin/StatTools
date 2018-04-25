@@ -1,6 +1,7 @@
 """Generalized additive models."""
 
 from .bin import BinSmoother
+from .kernel import KernelSmoother
 from .knn import KNNSmoother
-from .smoothing import BaggingSmoother
 from .polynomial import PolynomialSmoother
+from .smoothing import BaggingSmoother

@@ -20,7 +20,7 @@ To see the implementations in action, see the Jupyter notebooks in the [examples
 **Smoothing**
 
 * [Fitting a polynomial curve to a scatter plot](examples/Polynomial%20Smoothing.ipynb)
-* [Various scatterplot smoothers (polynomial, bin, *k* nearest neighbors) applied to a sine curve with Gaussian noise](examples/Scatterplot%20Smoothers.ipynb)
+* [Various scatterplot smoothers applied to a sine curve with Gaussian noise](examples/Scatterplot%20Smoothers.ipynb)
 
 ### Classification
 
