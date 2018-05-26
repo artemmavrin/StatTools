@@ -12,11 +12,11 @@ from mltools.optimization import GradientDescent, NewtonRaphson
 
 class TestLinearRegression(unittest.TestCase):
     def test_horizontal_line(self):
-        intercepts = np.arange(-5, 5)
+        intercepts = np.arange(-3, 3)
         x = np.arange(5)
         gd = GradientDescent(rate=0.1, iterations=1000)
         nr = NewtonRaphson(iterations=100)
-        solvers = (None, gd, nr)
+        solvers = (None, "lstsq", gd, nr)
         for intercept, solver in itertools.product(intercepts, solvers):
             y = np.repeat(intercept, repeats=len(x))
 
@@ -34,11 +34,11 @@ class TestLinearRegression(unittest.TestCase):
             np.testing.assert_almost_equal(model.coef, [0])
 
     def test_perfect_line_through_origin(self):
-        slopes = np.arange(-5, 5)
+        slopes = np.arange(-3, 3)
         x = np.arange(5)
         gd = GradientDescent(rate=0.1, iterations=1000)
         nr = NewtonRaphson(iterations=100)
-        solvers = (None, gd, nr)
+        solvers = (None, "lstsq", gd, nr)
         for slope, solver in itertools.product(slopes, solvers):
             if slope == 0:
                 continue
@@ -53,13 +53,13 @@ class TestLinearRegression(unittest.TestCase):
                 np.testing.assert_almost_equal(model.coef, [slope])
 
     def test_perfect_line(self):
-        intercepts = np.arange(-5, 5)
-        slopes = np.arange(-5, 5)
+        intercepts = np.arange(-3, 3)
+        slopes = np.arange(-3, 3)
         x = np.arange(5)
         gd = GradientDescent(rate=0.1, momentum=0.5, nesterov=True,
                               anneal=500, iterations=1000)
         nr = NewtonRaphson(iterations=100)
-        solvers = (None, gd, nr)
+        solvers = (None, "lstsq", gd, nr)
         for intercept, slope, solver in itertools.product(intercepts, slopes,
                                                           solvers):
             if slope == 0:
@@ -87,12 +87,12 @@ class TestLinearRegression(unittest.TestCase):
         slope1 = 2
         slope2 = 5
         n = 10
-        np.random.seed(0)
-        x = np.random.uniform(size=(n, 2))
+        rs = np.random.RandomState(0)
+        x = rs.uniform(size=(n, 2))
         y = intercept + x.dot([slope1, slope2])
         gd = GradientDescent(rate=0.1, momentum=0.9, iterations=1000)
         nr = NewtonRaphson(iterations=1000)
-        solvers = (None, gd, nr)
+        solvers = (None, "lstsq", gd, nr)
 
         for solver in solvers:
             model = LinearRegression(standardize=False)
@@ -114,7 +114,7 @@ class TestLinearRegression(unittest.TestCase):
 
         gd = GradientDescent(rate=0.1, momentum=0.9, iterations=1000)
         nr = NewtonRaphson(iterations=100)
-        solvers = (None, gd, nr)
+        solvers = (None, "lstsq", gd, nr)
         for solver in solvers:
             model = LinearRegression(standardize=False)
             model.fit(x, y, solver=solver)
@@ -138,9 +138,9 @@ class TestLinearRegression(unittest.TestCase):
             DOI: https://doi.org/10.1002/9780471722199
         """
         x = [[1, 0], [2, -1], [1, 2]]
-        ys = np.linspace(-5, 5, num=10)
+        ys = np.linspace(-5, 5, num=5)
         nr = NewtonRaphson(iterations=100)
-        solvers = (None, nr)
+        solvers = (None, "lstsq", nr)
         for y1, y2, y3, solver in itertools.product(ys, ys, ys, solvers):
             y = [y1, y2, y3]
             model = LinearRegression(standardize=False, fit_intercept=False)
