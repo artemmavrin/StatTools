@@ -5,7 +5,7 @@ import warnings
 
 import numpy as np
 
-from ..generic import Fittable
+from ..generic import Fittable, Classifier
 from ..utils import validate_samples
 
 
@@ -92,6 +92,8 @@ class GLM(Fittable, metaclass=abc.ABCMeta):
         x : array-like
             Explanatory variable.
         """
+        if not self.fitted:
+            raise self.unfitted_exception()
         x = validate_samples(x, n_dim=2)
         if x.shape[1] != self._p:
             raise ValueError("Wrong number of explanatory variables.")
@@ -128,7 +130,7 @@ class GLM(Fittable, metaclass=abc.ABCMeta):
 
         return x
 
-    def _preprocess_y(self, y, x=None, numerical=True):
+    def _preprocess_y(self, y, x=None):
         """Apply necessary validation and preprocessing to the response variable
         of a generalized linear model to prepare for fitting.
 
@@ -139,10 +141,6 @@ class GLM(Fittable, metaclass=abc.ABCMeta):
         x : array-like, shape (n, p)
             Explanatory variable. If provided, it is checked whether `x` and `y`
             have the same length (i.e., number of observations).
-        numerical : bool
-            Indicates whether the response variable is numerical or categorical.
-            If this is True and standardization is turned on, `y` will be
-            centered to have mean 0 and variance 1.
 
         Returns
         -------
@@ -155,7 +153,7 @@ class GLM(Fittable, metaclass=abc.ABCMeta):
             y, _ = validate_samples(y, x, n_dim=(1, None), equal_lengths=True)
 
         # Standardize if necessary
-        if numerical and self.standardize:
+        if not isinstance(self, Classifier) and self.standardize:
             self._y_mean = y.mean()
             self._y_std = y.std(ddof=0)
             if self._y_std == 0:

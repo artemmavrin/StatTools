@@ -120,7 +120,7 @@ class LogisticRegression(GLM, BinaryClassifier):
         # Validate input
         x = self._preprocess_x(x=x)
         y = self._preprocess_classes(y=y)
-        y = self._preprocess_y(y=y, x=x, numerical=False)
+        y = self._preprocess_y(y=y, x=x)
 
         # Maximum likelihood estimation by minimizing the average cross entropy
         self.loss = CrossEntropyLoss(x, y)
