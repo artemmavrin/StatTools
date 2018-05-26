@@ -82,7 +82,7 @@ class LinearRegression(LinearModel):
     estimation.
     """
 
-    def fit(self, x, y, solver=None, **kwargs):
+    def fit(self, x, y, solver="qr", **kwargs):
         """Fit the linear regression model via least squares.
 
         Parameters
@@ -93,9 +93,10 @@ class LinearRegression(LinearModel):
             Response variable.
         solver : None or Optimizer, optional
             Specify how to estimate the linear regression model coefficients.
-            None:
-                Ordinary least squares estimation. This is basically a wrapper
-                for numpy.linalg.lstsq().
+            None or "qr" (default):
+                Use the QR factorization of the design matrix.
+            "lstsq":
+                This is basically a wrapper for numpy.linalg.lstsq().
             Optimizer instance:
                 Specify an Optimizer to minimize the MSE loss function.
         kwargs : dict, optional
@@ -110,8 +111,12 @@ class LinearRegression(LinearModel):
         x = self._preprocess_x(x=x)
         y = self._preprocess_y(y=y, x=x)
 
-        if solver is None:
-            # Fit the model by least squares
+        if solver is None or solver == "qr":
+            # Fit the model using the QR factorization of the design matrix
+            q, r = np.linalg.qr(x, mode="reduced")
+            self._coef = np.linalg.solve(r, q.T.dot(y))
+        elif solver == "lstsq":
+            # Fit the model by solving the least squares problem directly
             self._coef, *_ = np.linalg.lstsq(x, y, rcond=None)
         elif isinstance(solver, Optimizer):
             # Minimize the mean squared error loss function
