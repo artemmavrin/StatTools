@@ -1,10 +1,12 @@
-"""Implementations of the non-parametric bootstrap for sampling distribution
-estimation.
+"""Implementations of the non-parametric bootstrap and the Bayesian bootstrap
+for sampling distribution estimation.
 
 References
 ----------
 Bradley Efron. "Bootstrap Methods: Another Look at the Jackknife". The Annals of
     Statistics, Volume 7, Number 1 (1979), 1--26. doi:10.1214/aos/1176344552
+Donald B. Rubin. "The Bayesian bootstrap". The Annals of Statistics, Volume 9,
+    Number 1 (1981), 130--134. doi:10.1214/aos/1176345338
 """
 
 import numbers
@@ -14,6 +16,8 @@ import scipy.stats as st
 
 from ..utils.validation import validate_samples, validate_func
 
+
+# Non-parametric bootstrap
 
 def bootstrap(*samples, n_boot, random_state=None, ret_list=False):
     """Generate bootstrap samples by drawing with replacement.
@@ -180,3 +184,118 @@ class Bootstrap(object):
             raise ValueError(f"Invalid parameter 'kind': {kind}")
 
         return lower, upper
+
+
+# Bayesian bootstrap
+
+def bayesian_bootstrap(*samples, n_boot, random_state=None):
+    """Generate Bayesian bootstrap posterior distribution estimates.
+
+    Parameters
+    ----------
+    samples : sequence of arrays
+        Sequence of samples.
+    n_boot : int
+        Number of bootstrap samples to draw. This is necessarily a keyword
+        argument.
+    random_state : numpy.random.RandomState, int, or array-like, optional
+        If a numpy.random.RandomState object, this is used as the random number
+        generator. Otherwise, this is the seed for a numpy.random.RandomState
+        object to be used as the random number generator. This is necessarily a
+        keyword argument.
+
+    Returns
+    -------
+    weights : numpy.ndarray of shape (n_boot, n_observations)
+        List of posterior distribution estimates.
+    """
+    # Validate the samples
+    samples = validate_samples(*samples, equal_lengths=True, ret_list=True)
+    n_obs = len(samples[0])
+
+    # Ensure `n_boot` is a positive integer
+    if not isinstance(n_boot, numbers.Integral) or int(n_boot) <= 0:
+        raise TypeError("Parameter 'n_boot' must be a positive integer.")
+    n_boot = int(n_boot)
+
+    # Initialize the random number generator if necessary
+    if not isinstance(random_state, np.random.RandomState):
+        random_state = np.random.RandomState(random_state)
+
+    # Generate Bayesian bootstrap posterior distribution weights
+    return random_state.dirichlet(np.repeat(1.0, n_obs), size=n_boot)
+
+
+class BayesianBootstrap(object):
+    """Class for generic sampling distribution estimation using the Bayesian
+    bootstrap.
+
+    Properties
+    ----------
+    n_boot : int
+        Number of bootstrap samples.
+    weights : numpy.ndarray
+        List of Bayesian bootstrap posterior distribution estimates.
+    dist : numpy.ndarray
+        Bayesian bootstrap sampling distribution of the statistic.
+    observed : object
+        Observed value of the statistic.
+    """
+    n_boot: int
+    weights: np.ndarray
+    dist: np.ndarray
+    observed: object
+
+    def __init__(self, *samples, stat, n_boot, random_state=None, **kwargs):
+        """Generate a Bayesian bootstrap sampling distribution.
+
+        Parameters
+        ----------
+        samples: sequence of arrays
+            Samples on which to perform the bootstrap resampling procedure. Each
+            array in this sequence should have the same length (i.e., sample
+            size), but there is no restriction on the shape otherwise.
+        stat: callable or str
+            The statistic to compute from the data. This must be a function with
+            signature
+                stat(*samples, weights, **kwargs)
+            where the `weights` keyword argument is used to specify the
+            posterior distribution, and is interpreted as the uniform
+            distribution if not specified. This is necessarily a keyword
+            argument.
+        n_boot : int
+            Number of bootstrap samples to draw. This is necessarily a keyword
+            argument.
+        random_state : numpy.random.RandomState, int, or array-like, optional
+            If a numpy.random.RandomState object, this is used as the random
+            number generator. Otherwise, this is the seed for a
+            numpy.random.RandomState object. This is necessarily a keyword
+            argument.
+        kwargs: dict, optional
+            Additional keyword arguments to pass to the function represented by
+            the parameter `stat`.
+        """
+        # Validate the statistic
+        stat = validate_func(stat, **kwargs)
+
+        # Generate posterior distributions
+        self.weights = bayesian_bootstrap(*samples, n_boot=n_boot,
+                                          random_state=random_state)
+
+        # Compute the bootstrap sampling distribution
+        dist = [stat(*samples, weights=weight) for weight in self.weights]
+
+        # Store bootstrap sampling distribution and the observed statistic
+        self.dist = np.asarray(dist)
+        self.observed = stat(*samples)
+
+        # Store the number of bootstrap samples
+        self.n_boot = n_boot
+
+    def var(self):
+        """Bayesian bootstrap estimate for the variance of the statistic."""
+        return self.dist.var(axis=0, ddof=0)
+
+    def se(self):
+        """Bayesian bootstrap standard error estimate."""
+        return self.dist.std(axis=0, ddof=0)
