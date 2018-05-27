@@ -31,16 +31,16 @@ class MSELoss(object):
         self.n = len(self.x)
 
     def __call__(self, coef):
-        """Compute the mean squared error loss for the training data."""
+        """Mean squared error loss for the training data."""
         residuals = self.x.dot(coef) - self.y
         return residuals.dot(residuals) / self.n
 
     def grad(self, coef):
-        """Compute the gradient of the mean squared error loss."""
+        """Gradient of the mean squared error loss."""
         return 2 * self.x.T.dot(self.x.dot(coef) - self.y) / self.n
 
     def hess(self, _):
-        """Compute the Hessian of the mean squared error loss."""
+        """Hessian of the mean squared error loss."""
         return 2 * self.x.T.dot(self.x) / self.n
 
 
@@ -88,17 +88,19 @@ class LinearRegression(LinearModel):
         Parameters
         ----------
         x : array-like, shape (n, p)
-            Explanatory variables.
+            Design matrix consisting of n observations of p explanatory
+            variables.
         y : array-like, shape (n,)
-            Response variable.
-        solver : None or Optimizer, optional
+            Response vector.
+        solver : None or str or Optimizer, optional
             Specify how to estimate the linear regression model coefficients.
-            None or "qr" (default):
-                Use the QR factorization of the design matrix.
-            "lstsq":
-                This is basically a wrapper for numpy.linalg.lstsq().
-            Optimizer instance:
-                Specify an Optimizer to minimize the MSE loss function.
+            Acceptable values:
+                None or "qr" (default):
+                    Use the QR factorization of the design matrix.
+                "lstsq":
+                    This is basically a wrapper for numpy.linalg.lstsq().
+                Optimizer instance:
+                    Specify an Optimizer to minimize the MSE loss function.
         kwargs : dict, optional
             If `solver` is an Optimizer, these are additional keyword arguments
             for its optimize() method. Otherwise, these are ignored.
