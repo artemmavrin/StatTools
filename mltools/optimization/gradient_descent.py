@@ -1,10 +1,62 @@
 """Defines the GradientDescent class."""
 
 import numbers
+import warnings
 
 import numpy as np
 
 from .base import Optimizer
+
+
+def validate_gd_params(rate, momentum, nesterov, anneal, iterations):
+    """Validate tuning parameters for gradient descent.
+
+    Parameters
+    ----------
+    rate: float, optional
+        Step size/learning rate. Must be positive.
+    momentum: float, optional
+        Momentum parameter. Must be positive.
+    nesterov: bool
+        If True, the update rule is Nesterov's accelerated gradient descent.
+        If False, the update rule is vanilla gradient descent with momentum.
+    anneal: float, optional
+        Factor determining the annealing schedule of the learning rate. Must
+        be positive. Smaller values lead to faster shrinking of the learning
+        rate over time.
+    iterations: int, optional
+        Number of iterations of the algorithm to perform. Must be positive."""
+    if not isinstance(rate, numbers.Real) or rate <= 0:
+        raise TypeError("Parameter 'rate' must be a positive float")
+    else:
+        rate = float(rate)
+
+    if not isinstance(momentum, numbers.Real) or momentum < 0:
+        raise TypeError("Parameter 'momentum' must be a non-negative float")
+    else:
+        momentum = float(momentum)
+
+    if not isinstance(nesterov, bool):
+        raise TypeError("Parameter 'nesterov' must be boolean")
+    else:
+        nesterov = bool(nesterov)
+
+    if not isinstance(anneal, numbers.Real) or anneal <= 0:
+        raise TypeError("Parameter 'anneal' must be a positive float")
+    else:
+        anneal = float(anneal)
+
+    if not isinstance(iterations, numbers.Integral) or iterations <= 0:
+        raise TypeError("Parameter 'iterations' must be a positive int")
+    else:
+        iterations = int(iterations)
+
+    if nesterov and momentum == 0:
+        warnings.warn("momentum=0 not valid for Nesterov's accelerated gradient"
+                      " descent. Reverting to vanilla gradient descent.")
+        nesterov = False
+
+    return rate, momentum, nesterov, anneal, iterations
 
 
 class GradientDescent(Optimizer):
@@ -30,22 +82,8 @@ class GradientDescent(Optimizer):
         iterations: int, optional
             Number of iterations of the algorithm to perform. Must be positive.
         """
-        if not isinstance(rate, numbers.Real) or rate <= 0:
-            raise TypeError("Parameter 'rate' must be a positive float")
-        if not isinstance(momentum, numbers.Real) or momentum < 0:
-            raise TypeError("Parameter 'momentum' must be a non-negative float")
-        if not isinstance(nesterov, bool):
-            raise TypeError("Parameter 'nesterov' must be boolean")
-        if not isinstance(anneal, numbers.Real) or anneal <= 0:
-            raise TypeError("Parameter 'anneal' must be a positive float")
-        if not isinstance(iterations, numbers.Integral) or iterations <= 0:
-            raise TypeError("Parameter 'iterations' must be a positive int")
-
-        self.rate = rate
-        self.momentum = momentum
-        self.nesterov = nesterov
-        self.anneal = anneal
-        self.iterations = iterations
+        self.rate, self.momentum, self.nesterov, self.anneal, self.iterations \
+            = validate_gd_params(rate, momentum, nesterov, anneal, iterations)
 
     def optimize(self, x0, func, grad=None, args=None, kwargs=None,
                  callback=None):
