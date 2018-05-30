@@ -33,16 +33,15 @@ class MSELoss(object):
 
     def __call__(self, coef):
         """Mean squared error loss for the training data."""
-        residuals = self.x.dot(coef) - self.y
-        return residuals.dot(residuals) / self.n
+        return 0.5 * np.sum((self.y - self.x.dot(coef)) ** 2) / self.n
 
     def grad(self, coef):
         """Gradient of the mean squared error loss."""
-        return 2 * self.x.T.dot(self.x.dot(coef) - self.y) / self.n
+        return self.x.T.dot(self.x.dot(coef) - self.y) / self.n
 
     def hess(self, _):
         """Hessian of the mean squared error loss."""
-        return 2 * self.x.T.dot(self.x) / self.n
+        return self.x.T.dot(self.x) / self.n
 
 
 class LinearModel(GLM, Regressor, metaclass=abc.ABCMeta):
@@ -189,17 +188,17 @@ def _fit_lr_gd(x, y, rate, momentum, nesterov, anneal, iterations):
         for t in range(iterations):
             step = rate / (1 + t / anneal)
             u_prev = u
-            u = momentum * u - 2 * step * x.T.dot(x.dot(coef) - y) / n
+            u = momentum * u - step * x.T.dot(x.dot(coef) - y) / n
             coef = coef - momentum * u_prev + (1 + momentum) * u
     elif momentum > 0:
         # Gradient descent with momentum
         for t in range(iterations):
             step = rate / (1 + t / anneal)
-            u = momentum * u - 2 * step * x.T.dot(x.dot(coef) - y) / n
+            u = momentum * u - step * x.T.dot(x.dot(coef) - y) / n
             coef = coef + u
     else:
         # Vanilla gradient descent
         for t in range(iterations):
             step = rate / (1 + t / anneal)
-            coef = coef - 2 * step * x.T.dot(x.dot(coef) - y) / n
+            coef = coef - step * x.T.dot(x.dot(coef) - y) / n
     return coef
