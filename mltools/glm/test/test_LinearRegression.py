@@ -57,7 +57,7 @@ class TestLinearRegression(unittest.TestCase):
         slopes = np.arange(-3, 3)
         x = np.arange(5)
         gd = GradientDescent(rate=0.1, momentum=0.5, nesterov=True,
-                              anneal=500, iterations=1000)
+                             anneal=500, iterations=1000)
         nr = NewtonRaphson(iterations=100)
         solvers = (None, "lstsq", gd, nr)
         for intercept, slope, solver in itertools.product(intercepts, slopes,
@@ -149,6 +149,28 @@ class TestLinearRegression(unittest.TestCase):
             self.assertAlmostEqual(theta, (y1 + 2 * y2 + y3) / 6)
             self.assertAlmostEqual(phi, (2 * y3 - y2) / 5)
             self.assertEqual(model.intercept, 0.0)
+
+    def test_fit_gradient_descent(self):
+        rs = np.random.RandomState(0)
+        tries = 10
+        n = 500
+        p = 20
+        intercept = 10
+        coef = rs.uniform(low=-10, high=10, size=p)
+        sigma = 0.001
+        gd_params = [{},
+                     dict(momentum=0.9, anneal=500, iterations=2000),
+                     dict(momentum=0.5, nesterov=True, iterations=500)]
+        for _, params in itertools.product(range(tries), gd_params):
+            x = rs.uniform(low=-10, high=10, size=(n, p))
+            y = intercept + x.dot(coef) + rs.normal(scale=sigma, size=n)
+            model = LinearRegression()
+            model.fit(x, y, solver="gd", **params)
+
+            np.testing.assert_almost_equal(model.predict(x), y, decimal=2)
+            np.testing.assert_almost_equal(model.intercept, intercept,
+                                           decimal=2)
+            np.testing.assert_almost_equal(model.coef, coef, decimal=2)
 
 
 if __name__ == "__main__":

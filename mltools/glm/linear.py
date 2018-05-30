@@ -7,6 +7,7 @@ import numpy as np
 from .glm import GLM
 from ..generic import Regressor
 from ..optimization import Optimizer
+from ..optimization.gradient_descent import validate_gd_params
 
 
 class MSELoss(object):
@@ -99,8 +100,14 @@ class LinearRegression(LinearModel):
                     Use the QR factorization of the design matrix.
                 "lstsq":
                     This is basically a wrapper for numpy.linalg.lstsq().
+                "gd":
+                    Use gradient descent to minimize the mean squared error.
+                    Acceptable keyword arguments (kwargs):
+                    rate, momentum, nesterov, anneal, iterations
+                    See mltools.optimization.GradientDescent for descriptions.
                 Optimizer instance:
-                    Specify an Optimizer to minimize the MSE loss function.
+                    Specify an mltools.Optimizer to minimize the MSE loss
+                    function.
         kwargs : dict, optional
             If `solver` is an Optimizer, these are additional keyword arguments
             for its optimize() method. Otherwise, these are ignored.
@@ -120,6 +127,15 @@ class LinearRegression(LinearModel):
         elif solver == "lstsq":
             # Fit the model by solving the least squares problem directly
             self._coef, *_ = np.linalg.lstsq(x, y, rcond=None)
+        elif solver == "gd":
+            # Fit the model by gradient descent
+            gd_params = {"rate": 0.1,
+                         "momentum": 0.0,
+                         "nesterov": False,
+                         "anneal": np.inf,
+                         "iterations": 1000}
+            gd_params.update(kwargs)
+            self._coef = _fit_lr_gd(x, y, **gd_params)
         elif isinstance(solver, Optimizer):
             # Minimize the mean squared error loss function
             loss = MSELoss(x, y)
@@ -130,3 +146,60 @@ class LinearRegression(LinearModel):
 
         self.fitted = True
         return self
+
+
+def _fit_lr_gd(x, y, rate, momentum, nesterov, anneal, iterations):
+    """Fit a linear regression model using gradient descent.
+
+    This is an alternative to mltools.optimization.GradientDescent that
+    eliminates function call overhead.
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        Design matrix
+    y : numpy.ndarray
+        Response vector
+    rate: float, optional
+        Step size/learning rate. Must be positive.
+    momentum: float, optional
+        Momentum parameter. Must be positive.
+    nesterov: bool
+        If True, the update rule is Nesterov's accelerated gradient descent.
+        If False, the update rule is vanilla gradient descent with momentum.
+    anneal: float, optional
+        Factor determining the annealing schedule of the learning rate. Must
+        be positive. Smaller values lead to faster shrinking of the learning
+        rate over time.
+    iterations: int, optional
+        Number of iterations of the algorithm to perform. Must be positive.
+    """
+    # Validate parameters
+    rate, momentum, nesterov, anneal, iterations \
+        = validate_gd_params(rate, momentum, nesterov, anneal, iterations)
+
+    n, p = x.shape
+
+    # Initialize coefficient vector and update vector
+    coef = np.zeros(p)
+    u = np.zeros(p)
+
+    if nesterov:
+        # Nesterov's accelerated gradient descent
+        for t in range(iterations):
+            step = rate / (1 + t / anneal)
+            u_prev = u
+            u = momentum * u - 2 * step * x.T.dot(x.dot(coef) - y) / n
+            coef = coef - momentum * u_prev + (1 + momentum) * u
+    elif momentum > 0:
+        # Gradient descent with momentum
+        for t in range(iterations):
+            step = rate / (1 + t / anneal)
+            u = momentum * u - 2 * step * x.T.dot(x.dot(coef) - y) / n
+            coef = coef + u
+    else:
+        # Vanilla gradient descent
+        for t in range(iterations):
+            step = rate / (1 + t / anneal)
+            coef = coef - 2 * step * x.T.dot(x.dot(coef) - y) / n
+    return coef
