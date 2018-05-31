@@ -1,4 +1,11 @@
-"""Variants of the linear model."""
+"""Variants of the linear model.
+
+References
+----------
+Seber, George A. F. and Lee, Alan J. (2003) Linear regression analysis. Second
+    edition. Wiley Series in Probability and Statistics. xvi+557.
+    doi:10.1002/9780471722199
+"""
 
 import abc
 
@@ -11,7 +18,9 @@ from ..optimization.gradient_descent import validate_gd_params
 
 
 class MSELoss(object):
-    """Mean squared error loss function for linear regression.
+    """Mean squared error loss function for linear regression:
+        L(b) = 0.5 * sum((y - x.dot(b)) ** 2) / n,
+    where n is the number of observations.
 
     Minimizing this loss function is equivalent to maximizing the likelihood
     function of the linear regression model.
@@ -92,7 +101,7 @@ class LinearRegression(LinearModel):
             variables.
         y : array-like, shape (n,)
             Response vector.
-        solver : None or str or Optimizer, optional
+        solver : None or str or mltools.optimization.Optimizer, optional
             Specify how to estimate the linear regression model coefficients.
             Acceptable values:
                 None or "qr" (default):
@@ -104,12 +113,14 @@ class LinearRegression(LinearModel):
                     Acceptable keyword arguments (kwargs):
                     rate, momentum, nesterov, anneal, iterations
                     See mltools.optimization.GradientDescent for descriptions.
-                Optimizer instance:
-                    Specify an mltools.Optimizer to minimize the MSE loss
-                    function.
+                mltools.optimization.Optimizer instance:
+                    Specify an optimizer to minimize the MSE loss function.
         kwargs : dict, optional
-            If `solver` is an Optimizer, these are additional keyword arguments
-            for its optimize() method. Otherwise, these are ignored.
+            If `solver` is "gd", these specify gradient descent parameters rate,
+            momentum, nesterov, anneal, and iterations. See
+            mltools.optimization.GradientDescent for descriptions.
+            If `solver` is an mltools.optimization.Optimizer, these are keyword
+            arguments for its optimize() method.
 
         Returns
         -------
