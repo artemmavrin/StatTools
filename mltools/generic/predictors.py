@@ -4,11 +4,19 @@ import abc
 
 import numpy as np
 
-from .fittable import Fittable
+from .fit import Fittable
 from ..utils import validate_samples
 
 
-class Classifier(Fittable, metaclass=abc.ABCMeta):
+class Predictor(Fittable, metaclass=abc.ABCMeta):
+    """Abstract base class for both classifiers and regressors."""
+
+    @abc.abstractmethod
+    def predict(self, *args, **kwargs):
+        pass
+
+
+class Classifier(Predictor, metaclass=abc.ABCMeta):
     """Abstract base class for classifiers.
 
     Properties
@@ -38,11 +46,6 @@ class Classifier(Fittable, metaclass=abc.ABCMeta):
         """
         self.classes, indices = np.unique(y, return_inverse=True)
         return indices
-
-    @abc.abstractmethod
-    def predict(self, *args, **kwargs):
-        """Predict class labels from input feature data."""
-        pass
 
     def mcr(self, x, y, *args, **kwargs):
         """Compute the misclassification rate of the model for given values of
@@ -92,14 +95,14 @@ class BinaryClassifier(Classifier):
         """
         indices = super(BinaryClassifier, self)._preprocess_classes(y)
         if len(self.classes) != 2:
-            raise ValueError(f"This model is a binary classifier;"
+            raise ValueError(f"This model is a binary classifier; "
                              f"found {len(self.classes)} distinct classes")
         return indices
 
     @abc.abstractmethod
     def predict_prob(self, *args, **kwargs):
-        """Return probability P(y=C1|x) that the data belongs to class C1."""
-        pass
+        """Return probability P(y=C1|x) that the data belong to class C1."""
+        raise NotImplementedError()
 
     def predict(self, x, cutoff=0.5, *args, **kwargs):
         """Classify input samples according to their probability estimates.
@@ -123,13 +126,8 @@ class BinaryClassifier(Classifier):
         return self.classes[list(map(int, np.less(cutoff, prob)))]
 
 
-class Regressor(Fittable, metaclass=abc.ABCMeta):
+class Regressor(Predictor, metaclass=abc.ABCMeta):
     """Abstract base class for regressors."""
-
-    @abc.abstractmethod
-    def predict(self, *args, **kwargs):
-        """Predict numeric values from input feature data."""
-        pass
 
     def mse(self, x, y, *args, **kwargs):
         """Compute the mean squared error of the model for given values of the

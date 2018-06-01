@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from mltools.generic.fittable import UnfittedException
+from mltools.generic.fit import UnfittedException
 from mltools.preprocessing import Standardizer
 
 

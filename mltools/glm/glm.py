@@ -52,7 +52,7 @@ class GLM(Fittable, metaclass=abc.ABCMeta):
     def intercept(self):
         """The intercept of the GLM."""
         if not self.fitted:
-            raise self.unfitted_exception()
+            raise self.unfitted_exception
 
         if self.standardize:
             return (self._y_mean
@@ -67,7 +67,7 @@ class GLM(Fittable, metaclass=abc.ABCMeta):
     def coef(self):
         """Array of coefficients of each explanatory variable in the GLM."""
         if not self.fitted:
-            raise self.unfitted_exception()
+            raise self.unfitted_exception
 
         if self.standardize:
             return self._y_std * self._coef / self._x_std
@@ -93,7 +93,7 @@ class GLM(Fittable, metaclass=abc.ABCMeta):
             Explanatory variable.
         """
         if not self.fitted:
-            raise self.unfitted_exception()
+            raise self.unfitted_exception
         x = validate_samples(x, n_dim=2)
         if x.shape[1] != self._p:
             raise ValueError("Wrong number of explanatory variables.")

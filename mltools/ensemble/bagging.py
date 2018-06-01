@@ -5,11 +5,11 @@ import functools
 
 import numpy as np
 
-from ..generic import Classifier, Regressor
+from ..generic import Predictor, Classifier, Regressor
 from ..resampling import Bootstrap
 
 
-class BaggingEstimator(metaclass=abc.ABCMeta):
+class BaggingEstimator(Predictor, metaclass=abc.ABCMeta):
     """Abstract base class for bagging estimators.
 
     Properties
@@ -71,8 +71,8 @@ class BaggingEstimator(metaclass=abc.ABCMeta):
             y = self._preprocess_classes(y)
 
         # The statistic being bootstrapped is the underlying fitted estimator
-        def stat(x, y):
-            return self.base().fit(x, y, **kwargs)
+        def stat(x_, y_):
+            return self.base().fit(x_, y_, **kwargs)
 
         # Generate bootstrap estimators
         boot = Bootstrap(x, y, stat=stat, n_boot=n_boot,
@@ -107,7 +107,7 @@ class BaggingClassifier(BaggingEstimator, Classifier):
         """
         # Ensure the model is fitted
         if not self.fitted:
-            raise self.unfitted_exception()
+            raise self.unfitted_exception
 
         p = np.asarray([model.predict(x, *args, **kwargs)
                         for model in self._estimators])
@@ -142,7 +142,7 @@ class BaggingRegressor(BaggingEstimator, Regressor):
         """
         # Ensure the model is fitted
         if not self.fitted:
-            raise self.unfitted_exception()
+            raise self.unfitted_exception
 
         p = [model.predict(x, *args, **kwargs) for model in self._estimators]
         return np.mean(p, axis=0)

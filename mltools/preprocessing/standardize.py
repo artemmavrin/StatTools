@@ -81,7 +81,7 @@ class Standardizer(InvertibleDataTransformer):
             Standardized data matrix.
         """
         if not self.fitted:
-            raise self.unfitted_exception()
+            raise self.unfitted_exception
 
         x = self._preprocess_data(x)
         z = np.asarray(x, dtype=np.float_)
@@ -115,7 +115,7 @@ class Standardizer(InvertibleDataTransformer):
             Un-standardized data with as many columns as the training data.
         """
         if not self.fitted:
-            raise self.unfitted_exception()
+            raise self.unfitted_exception
 
         # Validate input
         if np.ndim(z) == 1:

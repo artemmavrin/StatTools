@@ -1,4 +1,4 @@
-"""Generalized additive models."""
+"""Scatterplot smoothers."""
 
 from .bin import BinSmoother
 from .kernel import KernelSmoother

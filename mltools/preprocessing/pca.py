@@ -59,7 +59,7 @@ class PCA(InvertibleDataTransformer):
             Matrix whose columns are principal components.
         """
         if not self.fitted:
-            raise self.unfitted_exception()
+            raise self.unfitted_exception
 
         x = self._preprocess_data(x)
 
@@ -88,7 +88,7 @@ class PCA(InvertibleDataTransformer):
             Matrix with the full number of dimensions.
         """
         if not self.fitted:
-            raise self.unfitted_exception()
+            raise self.unfitted_exception
 
         # Validate input
         if np.ndim(y) == 1:

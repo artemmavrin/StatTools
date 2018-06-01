@@ -1,4 +1,4 @@
-"""Implements the generic Fittable mixin class."""
+"""Defines the generic Fittable mixin class."""
 
 import abc
 
@@ -34,10 +34,11 @@ class Fittable(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def fit(self, *arg, **kwargs):
-        """Fit this object to data."""
-        pass
+        """Fit this object to data. This function should return self."""
+        return self
 
-    def unfitted_exception(self, message=None):
+    @property
+    def unfitted_exception(self) -> UnfittedException:
         """Return an exception to be raised when a post-fitting method is called
         before fitting.
 
@@ -46,4 +47,4 @@ class Fittable(metaclass=abc.ABCMeta):
         message : str, optional
             Error message.
         """
-        return UnfittedException(obj=self, message=message)
+        return UnfittedException(obj=self)

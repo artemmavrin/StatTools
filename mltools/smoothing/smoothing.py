@@ -3,7 +3,7 @@
 import abc
 
 from ..ensemble.bagging import BaggingRegressor
-from ..generic.estimators import Regressor
+from ..generic.predictors import Regressor
 from ..visualization import func_plot
 
 

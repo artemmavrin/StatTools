@@ -5,7 +5,7 @@ from itertools import product
 
 import numpy as np
 
-from mltools.gam import PolynomialSmoother
+from mltools.smoothing import PolynomialSmoother
 
 
 class TestPolynomialSmoother(unittest.TestCase):

@@ -1,7 +1,8 @@
 """Implements various generic estimation schemes."""
 
-from .estimators import BinaryClassifier
-from .estimators import Classifier
-from .estimators import Regressor
-from .fittable import Fittable
+from .fit import Fittable
 from .ovr import OVRClassifier
+from .predictors import BinaryClassifier
+from .predictors import Classifier
+from .predictors import Predictor
+from .predictors import Regressor
