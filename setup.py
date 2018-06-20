@@ -13,5 +13,6 @@ setup(
     url="https://github.com/artemmavrin/StatTools",
     author="Artem Mavrin",
     author_email="amavrin@ucsd.edu",
-    description="Statistical learning and inference library"
+    description="Statistical learning and inference library",
+    include_package_data=True
 )
