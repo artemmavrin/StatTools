@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="stattools",
-    version="0.0.0",
+    version="0.0.01",
     license="MIT",
     packages=["stattools", "stattools.glm", "stattools.sde", "stattools.utils",
               "stattools.generic", "stattools.datasets", "stattools.ensemble",
@@ -14,5 +14,6 @@ setup(
     author="Artem Mavrin",
     author_email="amavrin@ucsd.edu",
     description="Statistical learning and inference library",
-    include_package_data=True
+    include_package_data=True,
+    install_requires=["numpy", "scipy", "pandas", "matplotlib"]
 )
