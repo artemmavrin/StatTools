@@ -10,5 +10,6 @@ import mltools.regularization
 import mltools.resampling
 import mltools.sde
 import mltools.smoothing
+import mltools.survival
 import mltools.utils
 import mltools.visualization

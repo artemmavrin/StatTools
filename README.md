@@ -34,6 +34,7 @@ To see the implementations in action, see the Jupyter notebooks in the [examples
 * [The bootstrap (ordinary and Bayesian) and the jackknife for standard error estimation](examples/Bootstrap%20and%20Jackknife.ipynb)
 * [Bootstrap confidence intervals](examples/Bootstrap%20Confidence%20Intervals.ipynb)
 * [Exact and Monte Carlo permutation tests](examples/Permutation%20Test.ipynb)
+* [The Kaplan-Meier survivor function estimator](examples/Kaplan-Meier%20Estimator.ipynb)
 
 ### Ensemble Methods
 
