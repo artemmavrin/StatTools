@@ -1,4 +1,4 @@
-"""Miscellaneous utility functions and classes for MLTools."""
+"""Miscellaneous utility functions and classes for StatTools."""
 
 from .summary import BaseSummary
 from .validation import validate_samples

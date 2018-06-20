@@ -101,7 +101,7 @@ class LinearRegression(LinearModel):
             variables.
         y : array-like, shape (n,)
             Response vector.
-        solver : None or str or mltools.optimization.Optimizer, optional
+        solver : None or str or stattools.optimization.Optimizer, optional
             Specify how to estimate the linear regression model coefficients.
             Acceptable values:
                 None or "qr" (default):
