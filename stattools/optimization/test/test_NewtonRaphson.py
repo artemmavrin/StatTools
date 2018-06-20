@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from mltools.optimization import NewtonRaphson
+from stattools.optimization import NewtonRaphson
 
 
 class TestNewtonRaphson(unittest.TestCase):

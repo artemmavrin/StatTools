@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from mltools.utils.validation import validate_func
+from stattools.utils.validation import validate_func
 
 
 class TestValidateFunc(unittest.TestCase):

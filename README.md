@@ -1,6 +1,6 @@
-# MLTools
+# StatTools
 
-Machine learning and statistical inference algorithms implemented in Python (version 3.6 or later).
+Statistical learning and inference algorithms implemented in pure Python (version 3.6 or later).
 
 ## Examples
 

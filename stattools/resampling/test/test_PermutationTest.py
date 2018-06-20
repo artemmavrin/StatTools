@@ -4,7 +4,7 @@ import unittest
 
 import numpy as np
 
-from mltools.resampling import PermutationTest
+from stattools.resampling import PermutationTest
 
 
 class TestPermutationTest(unittest.TestCase):

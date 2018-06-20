@@ -2,8 +2,8 @@ import unittest
 
 import numpy as np
 
-from mltools.generic.fit import UnfittedException
-from mltools.preprocessing import Standardizer
+from stattools.generic.fit import UnfittedException
+from stattools.preprocessing import Standardizer
 
 
 class TestStandardizer(unittest.TestCase):

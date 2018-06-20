@@ -6,8 +6,8 @@ import warnings
 
 import numpy as np
 
-from mltools.glm import LinearRegression
-from mltools.optimization import GradientDescent, NewtonRaphson
+from stattools.glm import LinearRegression
+from stattools.optimization import GradientDescent, NewtonRaphson
 
 
 class TestLinearRegression(unittest.TestCase):

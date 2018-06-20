@@ -3,7 +3,7 @@ import unittest
 
 import numpy as np
 
-from mltools.resampling import bootstrap, Bootstrap
+from stattools.resampling import bootstrap, Bootstrap
 
 
 class TestBootstrap(unittest.TestCase):

@@ -1,6 +1,9 @@
 PYTHON := python3
 
-.PHONY: test clean
+.PHONY: install test clean
+
+install:
+	${PYTHON} setup.py install
 
 test:
 	@- \

@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from mltools.utils.validation import validate_samples
+from stattools.utils.validation import validate_samples
 
 
 class TestValidateSamples(unittest.TestCase):

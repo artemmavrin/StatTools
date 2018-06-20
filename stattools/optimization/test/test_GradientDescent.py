@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from mltools.optimization import GradientDescent
+from stattools.optimization import GradientDescent
 
 
 class TestGradientDescent(unittest.TestCase):
