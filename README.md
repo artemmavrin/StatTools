@@ -1,5 +1,7 @@
 # StatTools
 
+[![PyPI version](https://badge.fury.io/py/StatTools.svg)](https://badge.fury.io/py/StatTools)
+
 Statistical learning and inference algorithms implemented in pure Python (version 3.6 or later).
 
 ## Installation
