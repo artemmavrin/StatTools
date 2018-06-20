@@ -2,6 +2,13 @@
 
 Statistical learning and inference algorithms implemented in pure Python (version 3.6 or later).
 
+## Installation
+
+This project is on the [Python Package Index (PyPI)](https://pypi.org/project/StatTools/), so it can be installed with the `pip` utility:
+
+    pip install stattools
+
+
 ## Examples
 
 To see the implementations in action, see the Jupyter notebooks in the [examples](examples/) directory.
