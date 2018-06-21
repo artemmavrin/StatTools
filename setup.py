@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="stattools",
-    version="0.0.01",
+    version="0.0.2",
     license="MIT",
     packages=["stattools", "stattools.glm", "stattools.sde", "stattools.utils",
               "stattools.generic", "stattools.datasets", "stattools.ensemble",

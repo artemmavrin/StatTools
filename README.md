@@ -44,6 +44,7 @@ To see the implementations in action, see the Jupyter notebooks in the [examples
 * [Bootstrap confidence intervals](examples/Bootstrap%20Confidence%20Intervals.ipynb)
 * [Exact and Monte Carlo permutation tests](examples/Permutation%20Test.ipynb)
 * [The Kaplan-Meier survivor function estimator](examples/Kaplan-Meier%20Estimator.ipynb)
+* [Kernel density estimation](examples/Kernel%20Density%20Estimation.ipynb)
 
 ### Ensemble Methods
 
