@@ -6,10 +6,15 @@ Statistical learning and inference algorithms implemented in pure Python (versio
 
 ## Installation
 
-This project is on the [Python Package Index (PyPI)](https://pypi.org/project/StatTools/), so it can be installed with the `pip` utility:
+The latest version of StatTools can be installed directly after cloning from GitHub:
+
+    git clone https://github.com/artemmavrin/StatTools.git
+    cd StatTools
+    make install
+
+Moreover, StatTools is on the [Python Package Index (PyPI)](https://pypi.org/project/StatTools/), so a recent version of it can be installed with the `pip` utility:
 
     pip install stattools
-
 
 ## Examples
 
