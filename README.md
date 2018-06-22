@@ -1,6 +1,6 @@
 # StatTools
 
-[![PyPI version](https://badge.fury.io/py/StatTools.svg)](https://badge.fury.io/py/StatTools)
+[![PyPI version](https://badge.fury.io/py/stattools.svg)](https://badge.fury.io/py/stattools)
 
 Statistical learning and inference algorithms implemented in pure Python (version 3.6 or later).
 
@@ -12,7 +12,7 @@ The latest version of StatTools can be installed directly after cloning from Git
     cd StatTools
     make install
 
-Moreover, StatTools is on the [Python Package Index (PyPI)](https://pypi.org/project/StatTools/), so a recent version of it can be installed with the `pip` utility:
+Moreover, StatTools is on the [Python Package Index (PyPI)](https://pypi.org/project/stattools/), so a recent version of it can be installed with the `pip` utility:
 
     pip install stattools
 

@@ -4,12 +4,12 @@ from setuptools import setup, find_packages
 
 # Load long description from README.md
 here = path.abspath(path.dirname(__file__))
-with open(path.join(here, "README.md"), encoding="utf-8") as f:
+with open(path.join(here, "README.md"), "r") as f:
     long_description = f.read()
 
 setup(
     name="stattools",
-    version="0.0.2",
+    version="0.0.3",
     description="Statistical learning and inference library",
     long_description=long_description,
     long_description_content_type="text/markdown",
