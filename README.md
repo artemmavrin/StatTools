@@ -16,9 +16,14 @@ Moreover, StatTools is on the [Python Package Index (PyPI)](https://pypi.org/pro
 
     pip install stattools
 
-## Examples
+## Dependencies
 
-To see the implementations in action, see the Jupyter notebooks in the [examples](examples/) directory.
+* [NumPy](http://www.numpy.org)
+* [SciPy](https://www.scipy.org)
+* [pandas](https://pandas.pydata.org)
+* [Matplotlib](https://matplotlib.org)
+
+## Examples
 
 ### Regression
 
