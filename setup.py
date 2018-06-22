@@ -9,7 +9,7 @@ with open(path.join(here, "README.md"), "r") as f:
 
 setup(
     name="stattools",
-    version="0.0.3",
+    version="0.0.4",
     description="Statistical learning and inference library",
     long_description=long_description,
     long_description_content_type="text/markdown",
