@@ -1,19 +1,22 @@
-from setuptools import setup
+from setuptools import setup, find_packages
+from os import path
+
+# Load long description from README.md
+here = path.abspath(path.dirname(__file__))
+with open(path.join(here, "README.md"), encoding="utf-8") as f:
+    long_description = f.read()
 
 setup(
     name="stattools",
     version="0.0.2",
-    license="MIT",
-    packages=["stattools", "stattools.glm", "stattools.sde", "stattools.utils",
-              "stattools.generic", "stattools.datasets", "stattools.ensemble",
-              "stattools.survival", "stattools.smoothing",
-              "stattools.resampling", "stattools.optimization",
-              "stattools.preprocessing", "stattools.visualization",
-              "stattools.regularization"],
+    description="Statistical learning and inference library",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     url="https://github.com/artemmavrin/StatTools",
     author="Artem Mavrin",
     author_email="amavrin@ucsd.edu",
-    description="Statistical learning and inference library",
+    license="MIT",
+    packages=find_packages(),
     include_package_data=True,
     install_requires=["numpy", "scipy", "pandas", "matplotlib"]
 )

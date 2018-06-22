@@ -27,38 +27,39 @@ Moreover, StatTools is on the [Python Package Index (PyPI)](https://pypi.org/pro
 
 ### Regression
 
-* [Simple linear regression for fitting a line through a scatter plot](examples/Simple%20Linear%20Regression.ipynb)
-* [Ridge regression](examples/Ridge%20Regression.ipynb)
-* [Elastic net regularization (including LASSO and ridge regression as special cases)](examples/Elastic%20Net.ipynb)
-* [Fitting a polynomial curve to a scatter plot](examples/Polynomial%20Smoothing.ipynb)
-* [Various scatterplot smoothers applied to a sine curve with Gaussian noise](examples/Scatterplot%20Smoothers.ipynb)
+* [Simple linear regression for fitting a line through a scatter plot](https://github.com/artemmavrin/StatTools/blob/master/examples/Simple%20Linear%20Regression.ipynb)
+* [Ridge regression](https://github.com/artemmavrin/StatTools/blob/master/examples/Ridge%20Regression.ipynb)
+* [Elastic net regularization (including LASSO and ridge regression as special cases)](https://github.com/artemmavrin/StatTools/blob/master/examples/Elastic%20Net.ipynb)
+* [Fitting a polynomial curve to a scatter plot](https://github.com/artemmavrin/StatTools/blob/master/examples/Polynomial%20Smoothing.ipynb)
+* [Various scatterplot smoothers applied to a sine curve with Gaussian noise](https://github.com/artemmavrin/StatTools/blob/master/examples/Scatterplot%20Smoothers.ipynb)
 
 ### Classification
 
-* [Logistic regression for breast cancer diagnosis](examples/Logistic%20Regression.ipynb)
-* [Multiclass logistic regression for handwritten digit recognition](examples/Multiclass%20Logistic%20Regression.ipynb)
+* [Logistic regression for breast cancer diagnosis](https://github.com/artemmavrin/StatTools/blob/master/examples/Logistic%20Regression.ipynb)
+* [Multiclass logistic regression for handwritten digit recognition](https://github.com/artemmavrin/StatTools/blob/master/examples/Multiclass%20Logistic%20Regression.ipynb)
 
 ### Unsupervised Learning
-* [Principal component analysis applied to handwritten digits](examples/Principal%20Component%20Analysis.ipynb)
-* [Kernel density estimation for histogram smoothing](examples/Kernel%20Density%20Estimation.ipynb)
+
+* [Principal component analysis applied to handwritten digits](https://github.com/artemmavrin/StatTools/blob/master/examples/Principal%20Component%20Analysis.ipynb)
+* [Kernel density estimation for histogram smoothing](https://github.com/artemmavrin/StatTools/blob/master/examples/Kernel%20Density%20Estimation.ipynb)
 
 ### Non-Parametric Statistics
 
-* [The bootstrap (ordinary and Bayesian) and the jackknife for standard error estimation](examples/Bootstrap%20and%20Jackknife.ipynb)
-* [Bootstrap confidence intervals](examples/Bootstrap%20Confidence%20Intervals.ipynb)
-* [Exact and Monte Carlo permutation tests](examples/Permutation%20Test.ipynb)
-* [The Kaplan-Meier survivor function estimator](examples/Kaplan-Meier%20Estimator.ipynb)
+* [The bootstrap (ordinary and Bayesian) and the jackknife for standard error estimation](https://github.com/artemmavrin/StatTools/blob/master/examples/Bootstrap%20and%20Jackknife.ipynb)
+* [Bootstrap confidence intervals](https://github.com/artemmavrin/StatTools/blob/master/examples/Bootstrap%20Confidence%20Intervals.ipynb)
+* [Exact and Monte Carlo permutation tests](https://github.com/artemmavrin/StatTools/blob/master/examples/Permutation%20Test.ipynb)
+* [The Kaplan-Meier survivor function estimator](https://github.com/artemmavrin/StatTools/blob/master/examples/Kaplan-Meier%20Estimator.ipynb)
 
 ### Ensemble Methods
 
-* [Using bagging to improve logistic regression accuracy](examples/Bagging%20Logistic%20Regression.ipynb)
+* [Using bagging to improve logistic regression accuracy](https://github.com/artemmavrin/StatTools/blob/master/examples/Bagging%20Logistic%20Regression.ipynb)
 
 ### Data Visualization
 
-* [Plotting lines and function curves](examples/Plotting%20Lines%20and%20Functions.ipynb)
-* [Drawing empirical distribution functions](examples/Empirical%20Distribution%20Functions.ipynb)
-* [Drawing quantile-quantile (QQ) plots](examples/Quantile-Quantile%20Plots.ipynb)
+* [Plotting lines and function curves](https://github.com/artemmavrin/StatTools/blob/master/examples/Plotting%20Lines%20and%20Functions.ipynb)
+* [Drawing empirical distribution functions](https://github.com/artemmavrin/StatTools/blob/master/examples/Empirical%20Distribution%20Functions.ipynb)
+* [Drawing quantile-quantile (QQ) plots](https://github.com/artemmavrin/StatTools/blob/master/examples/Quantile-Quantile%20Plots.ipynb)
 
 ### Simulation
 
-* [Simulating sample paths of Itô diffusions](examples/Ito%20Diffusions.ipynb)
+* [Simulating sample paths of Itô diffusions](https://github.com/artemmavrin/StatTools/blob/master/examples/Ito%20Diffusions.ipynb)
