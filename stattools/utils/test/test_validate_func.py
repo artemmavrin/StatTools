@@ -7,6 +7,7 @@ from stattools.utils.validation import validate_func
 
 class TestValidateFunc(unittest.TestCase):
     def test_callable(self):
+        """Try passing a callable to validate_func()."""
         x = [1, 2, 3]
         y = [4, 5, 6]
 
@@ -18,6 +19,7 @@ class TestValidateFunc(unittest.TestCase):
         self.assertEqual(func_new(x, y), func(x, y, 10))
 
     def test_name(self):
+        """Try passing the name of a NumPy array function to validate_func()."""
         x = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]
         func = validate_func("mean", axis=0)
         np.testing.assert_equal(func(x), np.mean(x, axis=0))

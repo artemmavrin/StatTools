@@ -8,6 +8,7 @@ from stattools.resampling import bootstrap, Bootstrap
 
 class TestBootstrap(unittest.TestCase):
     def test_one_sample(self):
+        """Bootstrapping from one sample."""
         n = 20
         p = 5
         x = np.arange(n * p).reshape((n, p))
@@ -21,6 +22,7 @@ class TestBootstrap(unittest.TestCase):
             assert (all(row in x.tolist() for row in x_boot.tolist()))
 
     def test_two_samples(self):
+        """Bootstrapping from two sample."""
         n = 20
         p = 5
         x = np.arange(n * p).reshape((n, p))
@@ -40,6 +42,7 @@ class TestBootstrap(unittest.TestCase):
                 np.testing.assert_equal(x[int(i)], row)
 
     def test_two_samples_unequal_lengths(self):
+        """Catching an error when bootstrapping from unequal-length samples."""
         x = np.arange(100)
         y = np.arange(30)
 
@@ -47,6 +50,7 @@ class TestBootstrap(unittest.TestCase):
             bootstrap(x, y, n_boot=100, random_state=0)
 
     def test_constant_statistic(self):
+        """Bootstrap from constant samples."""
         x = np.repeat(0, repeats=100)
         y = np.repeat(1, repeats=100)
         n_boot = 100

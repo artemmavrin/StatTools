@@ -1,3 +1,5 @@
+"""Unit tests for the Standardizer class."""
+
 import unittest
 
 import numpy as np
@@ -8,6 +10,8 @@ from stattools.preprocessing import Standardizer
 
 class TestStandardizer(unittest.TestCase):
     def test_default_parameters(self):
+        """Make sure the default options work on a simple example."""
+
         # Example input data
         x = [[0, 0, 0, 1],
              [0, 0, 1, 1],
@@ -46,6 +50,7 @@ class TestStandardizer(unittest.TestCase):
         np.testing.assert_almost_equal(x_inv_tran, x)
 
     def test_reduce_False_bias_False(self):
+        """Standardize with reduce=False and bias=False."""
         # Example input data
         x = [[0, 0, 0, 1],
              [0, 0, 1, 1],

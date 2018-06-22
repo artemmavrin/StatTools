@@ -1,3 +1,5 @@
+"""Unit tests for the GradientDescent class."""
+
 import unittest
 
 import numpy as np
@@ -7,6 +9,8 @@ from stattools.optimization import GradientDescent
 
 class TestGradientDescent(unittest.TestCase):
     def test_quadratic_function_of_one_variable(self):
+        """Minimize f(x)=x^2 (one-dimensional)"""
+
         def func(x):
             return x * x
 
@@ -18,6 +22,8 @@ class TestGradientDescent(unittest.TestCase):
         self.assertAlmostEqual(x, 0.0)
 
     def test_quadratic_function_of_several_variables(self):
+        """Minimize f(x)=||x||^2 (multi-dimensional)"""
+
         def func(x):
             return np.dot(x, x)
 
@@ -34,6 +40,8 @@ class TestGradientDescent(unittest.TestCase):
             np.testing.assert_almost_equal(x, np.zeros(size))
 
     def test_quadratic_function_of_several_variables_momentum(self):
+        """Minimize f(x)=||x||^2 using gradient descent with momentum"""
+
         def func(x):
             return np.dot(x, x)
 
@@ -51,6 +59,8 @@ class TestGradientDescent(unittest.TestCase):
             np.testing.assert_almost_equal(x, np.zeros(size))
 
     def test_quadratic_function_of_several_variables_annealing(self):
+        """Minimize f(x)=||x||^2 using gradient descent with annealing"""
+
         def func(x):
             return np.dot(x, x)
 
@@ -69,6 +79,8 @@ class TestGradientDescent(unittest.TestCase):
             np.testing.assert_almost_equal(x, np.zeros(size))
 
     def test_quadratic_function_of_several_variables_nesterov(self):
+        """Minimize f(x)=||x||^2 using Nesterov's gradient descent"""
+
         def func(x):
             return np.dot(x, x)
 

@@ -1,3 +1,5 @@
+"""Unit tests for the NewtonRaphson class."""
+
 import unittest
 
 import numpy as np
@@ -7,6 +9,8 @@ from stattools.optimization import NewtonRaphson
 
 class TestNewtonRaphson(unittest.TestCase):
     def test_quadratic_function_of_one_variable(self):
+        """Minimize f(x)=x^2 (one-dimensional)"""
+
         def func(x):
             return x * x
 
@@ -21,6 +25,8 @@ class TestNewtonRaphson(unittest.TestCase):
         self.assertAlmostEqual(x, 0.0)
 
     def test_quadratic_function_of_several_variables(self):
+        """Minimize f(x)=||x||^2 (multi-dimensional)"""
+
         def func(x):
             return np.dot(x, x)
 

@@ -9,8 +9,8 @@ from stattools.resampling import PermutationTest
 
 class TestPermutationTest(unittest.TestCase):
     def test_lady_drinking_tea(self):
-        """Fisher's lady drinking tea exact permutation test. Wikipedia:
-         https://en.wikipedia.org/wiki/Lady_tasting_tea
+        """Fisher's lady drinking tea exact permutation test.
+        See https://en.wikipedia.org/wiki/Lady_tasting_tea
         """
         # Let 0 = milk first, 1 = tea first
 
@@ -29,15 +29,16 @@ class TestPermutationTest(unittest.TestCase):
         self.assertAlmostEqual(pt.p_value(), 1 / 70)
 
     def test_vitamin_e_treatment(self):
-        """Numerical example from Section 1.3, "Testing a Hypothesis", in
-        Chapter 1 of
-            Phillip Good. Permutation, parametric and bootstrap tests of
-            hypotheses, Third Edition. Springer Series in Statistics.
-            Springer-Verlag, New York, 2005, pp. xx+315.
-            DOI: https://doi.org/10.1007/b138696.
+        """Numerical example from Chapter 1, Section 1.3, in Good (2005).
 
-        This is a test of an exact permutation test, meaning that all possible
+        This is an exact permutation test, meaning that all possible
         permutations are to be sampled once.
+
+        References
+        ----------
+        Phillip Good. Permutation, parametric and bootstrap tests of hypotheses,
+            Third Edition. Springer Series in Statistics. Springer-Verlag, New
+            York, 2005, pp. xx+315. DOI: https://doi.org/10.1007/b138696.
         """
         # Vitamin E treatment group counts
         treatment = [121, 118, 110]

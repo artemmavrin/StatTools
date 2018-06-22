@@ -7,6 +7,7 @@ from stattools.utils.validation import validate_samples
 
 class TestValidateSamples(unittest.TestCase):
     def test_one_sample(self):
+        """Try passing a single sample to validate_samples()."""
         x1 = [0, 1, 2, 3, 4]
         x2 = [[0, 1, 2], [3, 4, 5]]
         x3 = 0
@@ -19,6 +20,7 @@ class TestValidateSamples(unittest.TestCase):
             np.testing.assert_equal(x_val, [x])
 
     def test_two_samples_equal_lengths(self):
+        """Try passing two samples of equal length to validate_samples()."""
         x = [0, 1, 2, 3, 4]
         y = [0, 0, 0, 0, 0]
 
@@ -31,6 +33,7 @@ class TestValidateSamples(unittest.TestCase):
         np.testing.assert_equal(y_val, y)
 
     def test_two_samples_different_lengths(self):
+        """Try passing two samples of unequal lengths to validate_samples()."""
         x = [0, 1, 2, 3, 4]
         y = [0, 0, 0]
 
@@ -42,6 +45,7 @@ class TestValidateSamples(unittest.TestCase):
             validate_samples(x, y, equal_lengths=True)
 
     def test_n_dim(self):
+        """Make sure the n_dim argument works."""
         x = [0, 1, 2, 3, 4]
         y = [1, 2, 3, 4, 5, 6]
         z = [[0, 1, 2], [3, 4, 5]]

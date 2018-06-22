@@ -1,5 +1,6 @@
-from setuptools import setup, find_packages
 from os import path
+
+from setuptools import setup, find_packages
 
 # Load long description from README.md
 here = path.abspath(path.dirname(__file__))
@@ -16,7 +17,7 @@ setup(
     author="Artem Mavrin",
     author_email="amavrin@ucsd.edu",
     license="MIT",
-    packages=find_packages(),
+    packages=sorted(find_packages(exclude=("*.test",))),
     include_package_data=True,
     install_requires=["numpy", "scipy", "pandas", "matplotlib"]
 )

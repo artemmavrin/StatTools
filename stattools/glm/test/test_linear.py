@@ -12,6 +12,7 @@ from stattools.optimization import GradientDescent, NewtonRaphson
 
 class TestLinearRegression(unittest.TestCase):
     def test_horizontal_line(self):
+        """Fit models of the form y=intercept, no error."""
         intercepts = np.arange(-3, 3)
         x = np.arange(5)
         gd = GradientDescent(rate=0.1, iterations=1000)
@@ -34,6 +35,7 @@ class TestLinearRegression(unittest.TestCase):
             np.testing.assert_almost_equal(model.coef, [0])
 
     def test_perfect_line_through_origin(self):
+        """Fit models of the form y=slope*x, no error."""
         slopes = np.arange(-3, 3)
         x = np.arange(5)
         gd = GradientDescent(rate=0.1, iterations=1000)
@@ -53,6 +55,7 @@ class TestLinearRegression(unittest.TestCase):
                 np.testing.assert_almost_equal(model.coef, [slope])
 
     def test_perfect_line(self):
+        """Fit models of the form y=intercept + slope*x, no error."""
         intercepts = np.arange(-3, 3)
         slopes = np.arange(-3, 3)
         x = np.arange(5)
@@ -83,6 +86,7 @@ class TestLinearRegression(unittest.TestCase):
             np.testing.assert_almost_equal(model.coef, [slope])
 
     def test_perfect_plane(self):
+        """Fit models of the form y=b0 + b1*x1 + b2*x2, no error."""
         intercept = 3
         slope1 = 2
         slope2 = 5
@@ -108,7 +112,7 @@ class TestLinearRegression(unittest.TestCase):
             np.testing.assert_almost_equal(model.coef, [slope1, slope2])
 
     def test_easy_1d(self):
-        """Numbers from http://onlinestatbook.com/2/regression/intro.html"""
+        """Example from http://onlinestatbook.com/2/regression/intro.html"""
         x = [1, 2, 3, 4, 5]
         y = [1, 2, 1.3, 3.75, 2.25]
 
@@ -131,8 +135,11 @@ class TestLinearRegression(unittest.TestCase):
             self.assertAlmostEqual(slope, 0.425)
 
     def test_easy_2d(self):
-        """Adapted from Exercises 3a, #3 in
-            George A. F. Seber and Alan J. Lee. Linear Regression Analysis,
+        """Example from Exercises 3a, #3 in Seber & Lee (2003)
+
+        References
+        ----------
+        George A. F. Seber and Alan J. Lee. Linear Regression Analysis,
             Second Edition. Wiley Series in Probability and Statistics.
             Wiley-Interscience, Hoboken, NJ, 2003, pp. xvi+557.
             DOI: https://doi.org/10.1002/9780471722199
@@ -151,6 +158,7 @@ class TestLinearRegression(unittest.TestCase):
             self.assertEqual(model.intercept, 0.0)
 
     def test_fit_gradient_descent(self):
+        """Test LinearRegression.fit() using the 'gd' option."""
         rs = np.random.RandomState(0)
         tries = 10
         n = 500

@@ -10,6 +10,7 @@ from stattools.smoothing import PolynomialSmoother
 
 class TestPolynomialSmoother(unittest.TestCase):
     def test_perfect_polynomial_interpolation(self):
+        """Fit polynomial models with no error (should be perfect fits)."""
         rs = np.random.RandomState(0)
         for deg, _ in product(range(1, 10), range(5)):
             coefficients = rs.normal(scale=10, size=(deg + 1))
