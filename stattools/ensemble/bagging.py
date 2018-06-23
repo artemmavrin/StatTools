@@ -68,7 +68,7 @@ class BaggingEstimator(Predictor, metaclass=abc.ABCMeta):
         """
         # Preprocess class labels in the case of classification
         if isinstance(self, BaggingClassifier):
-            y = self._preprocess_classes(y)
+            y = self._preprocess_classes(y, max_classes=None)
 
         # The statistic being bootstrapped is the underlying fitted estimator
         def stat(x_, y_):
@@ -85,6 +85,30 @@ class BaggingEstimator(Predictor, metaclass=abc.ABCMeta):
 
 class BaggingClassifier(BaggingEstimator, Classifier):
     """Bagging classifier."""
+
+    def predict_prob(self, x, *args, **kwargs):
+        """Predict probability of each class for each input.
+
+        These probabilities themselves are useless, because they are always
+        0 or 1.
+
+        Parameters
+        ----------
+        x : array-like
+            Explanatory variable.
+        args : sequence, optional
+            Positional arguments to pass to each class label estimator's
+            `predict_prob` method.
+        kwargs : dict, optional
+            Keyword arguments to pass to each class label estimator's
+            `predict_prob` method.
+        """
+        q = self.predict(x, *args, **kwargs)
+        p = np.zeros((len(x), len(self.classes)))
+        for i in range(len(x)):
+            j = np.where(self.classes == q[i])[0]
+            p[i, j] = 1
+        return p
 
     def predict(self, x, *args, **kwargs):
         """Predict class using a majority vote over each bootstrap estimator's

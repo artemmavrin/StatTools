@@ -5,7 +5,7 @@ import numbers
 import numpy as np
 
 from .glm import GLM
-from ..generic import BinaryClassifier
+from ..generic import Classifier
 from ..optimization import Optimizer
 from ..regularization import lasso, ridge
 
@@ -52,7 +52,7 @@ class CrossEntropyLoss(object):
         return self.x.T.dot(weights).dot(self.x) / self.n
 
 
-class LogisticRegression(GLM, BinaryClassifier):
+class LogisticRegression(GLM, Classifier):
     """Logistic regression via maximum likelihood estimation."""
 
     # Regularization type
@@ -60,6 +60,9 @@ class LogisticRegression(GLM, BinaryClassifier):
 
     # Regularization type
     penalty: float = None
+
+    # Loss function
+    loss = None
 
     # The link function for logistic regression is the logit function, whose
     # inverse is the sigmoid function
@@ -121,7 +124,7 @@ class LogisticRegression(GLM, BinaryClassifier):
         """
         # Validate input
         x = self._preprocess_features(x=x, names=names)
-        y = self._preprocess_classes(y=y)
+        y = self._preprocess_classes(y=y, max_classes=2)
         y = self._preprocess_response(y=y, x=x)
 
         # Maximum likelihood estimation by minimizing the average cross entropy
@@ -144,8 +147,8 @@ class LogisticRegression(GLM, BinaryClassifier):
         return self
 
     def predict_prob(self, x):
-        """Predict probability that the explanatory variable corresponds to
-        class label C1.
+        """Return estimated probability that the response corresponding to a
+        set of features belongs to each possible class.
 
         Parameters
         ----------
@@ -154,6 +157,8 @@ class LogisticRegression(GLM, BinaryClassifier):
 
         Returns
         -------
-        P(y=C1|x) = sigmoid(x * coef)
+        Matrix of shape (len(x), 2). The (i, j)-th entry is the probability that
+        the i-th observation corresponds to the j-th class.
         """
-        return self.estimate(x)
+        estimate = self.estimate(x)
+        return np.column_stack((1 - estimate, estimate))

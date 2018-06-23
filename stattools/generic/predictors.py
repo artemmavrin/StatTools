@@ -1,6 +1,7 @@
 """Defines abstract base classes for classifiers and regressors."""
 
 import abc
+import numbers
 
 import numpy as np
 
@@ -28,7 +29,7 @@ class Classifier(Predictor, metaclass=abc.ABCMeta):
 
     classes: np.ndarray = None
 
-    def _preprocess_classes(self, y):
+    def _preprocess_classes(self, y, max_classes):
         """Extract distinct classes from a response variable vector.
 
         This also converts the response variable vector to numeric indices
@@ -44,8 +45,41 @@ class Classifier(Predictor, metaclass=abc.ABCMeta):
         indices : numpy.ndarray
             Indices pointing to the class of each item in `y`.
         """
+        # Validate `max_classes`
+        if max_classes is not None:
+            if not isinstance(max_classes, numbers.Integral) \
+                    or int(max_classes) <= 1:
+                raise ValueError("Parameter 'max_classes' must be an int >= 2.")
+
+        # Extract unique classes, convert response vector to indices.
         self.classes, indices = np.unique(y, return_inverse=True)
+
+        # Doing classification with 1 (or 0?) classes is useless
+        if len(self.classes) < 2:
+            raise ValueError(
+                "Response vector must contain at least two distinct classes.")
+
+        # Make sure we don't have too many classes
+        if max_classes is not None:
+            if len(self.classes) > max_classes:
+                raise ValueError(
+                    "Response vector contains too many distinct classes.")
+
         return indices
+
+    @abc.abstractmethod
+    def predict_prob(self, *args, **kwargs):
+        """Return estimated probability that the response corresponding to a
+        set of features belongs to each possible class.
+
+        This method should return a matrix of shape (n_observations, n_classes).
+        """
+        raise NotImplementedError()
+
+    def predict(self, *args, **kwargs):
+        """Return the estimated class label for each input."""
+        p = self.predict_prob(*args, **kwargs)
+        return self.classes[np.argmax(p, axis=1)]
 
     def mcr(self, x, y, *args, **kwargs):
         """Compute the misclassification rate of the model for given values of
@@ -70,60 +104,6 @@ class Classifier(Predictor, metaclass=abc.ABCMeta):
         # Validate input
         x, y = validate_samples(x, y, n_dim=(None, 1), equal_lengths=True)
         return np.mean(y != self.predict(x, *args, **kwargs))
-
-
-class BinaryClassifier(Classifier):
-    """Abstract base class for binary classifiers.
-
-    In this case, the `classes` attribute will be a list of the form [C0, C1],
-    where C0 and C1 are the distinct class labels.
-    """
-
-    def _preprocess_classes(self, y):
-        """Extract distinct classes from a target vector, ensuring that there
-        are at most 2 classes.
-
-        Parameters
-        ----------
-        y : array-like
-            Categorical response variable vector.
-
-        Returns
-        -------
-        indices : numpy.ndarray
-            Indices pointing to the class of each item in `y`.
-        """
-        indices = super(BinaryClassifier, self)._preprocess_classes(y)
-        if len(self.classes) != 2:
-            raise ValueError(f"This model is a binary classifier; "
-                             f"found {len(self.classes)} distinct classes")
-        return indices
-
-    @abc.abstractmethod
-    def predict_prob(self, *args, **kwargs):
-        """Return probability P(y=C1|x) that the data belong to class C1."""
-        raise NotImplementedError()
-
-    def predict(self, x, cutoff=0.5, *args, **kwargs):
-        """Classify input samples according to their probability estimates.
-
-        Parameters
-        ----------
-        x : array-like
-            Explanatory variable.
-        cutoff : float in [0, 1], optional
-            If P(y=C1|x)>cutoff, then x is classified as class C1, otherwise C0.
-        args : sequence, optional
-            Positional arguments to pass to `predict_prob`.
-        kwargs : dict, optional
-            Keyword arguments to pass to `predict_prob`.
-
-        Returns
-        -------
-        Vector of predicted class labels.
-        """
-        prob = self.predict_prob(x, *args, **kwargs)
-        return self.classes[list(map(int, np.less(cutoff, prob)))]
 
 
 class Regressor(Predictor, metaclass=abc.ABCMeta):

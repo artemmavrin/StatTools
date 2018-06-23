@@ -4,7 +4,6 @@ import functools
 
 import numpy as np
 
-from .predictors import BinaryClassifier
 from .predictors import Classifier
 
 
@@ -17,7 +16,7 @@ class OVRClassifier(Classifier):
     true label is the one predicted for each sample.
     """
 
-    # List of BinaryClassifier estimators corresponding to each class label.
+    # List of Classifier estimators corresponding to each class label.
     # For a particular class, the corresponding estimator estimates the
     # probability that an input belongs to that class.
     _estimators = None
@@ -29,16 +28,16 @@ class OVRClassifier(Classifier):
         Parameters
         ----------
         base : type
-            A subclass of BinaryClassifier. Used to create binary classifiers
-            for each class label.
+            A subclass of Classifier. Used to create binary classifiers for each
+            class label.
         args : sequence, optional
             Positional arguments for the binary classifier constructor.
         kwargs : dict, optional
             Keyword arguments for the binary classifier constructor.
         """
-        if not issubclass(base, BinaryClassifier):
+        if not issubclass(base, Classifier):
             raise TypeError(
-                "Parameter 'base' must be a binary classifier type.")
+                "Parameter 'base' must be a classifier type.")
 
         self.base = functools.partial(base, *args, **kwargs)
 
@@ -62,7 +61,7 @@ class OVRClassifier(Classifier):
         -------
         This OVRClassifier instance.
         """
-        y = self._preprocess_classes(y)
+        y = self._preprocess_classes(y, max_classes=None)
 
         self._estimators = []
         for i in range(len(self.classes)):
@@ -71,8 +70,11 @@ class OVRClassifier(Classifier):
             self._estimators.append(clf)
         return self
 
-    def predict(self, x, *args, **kwargs):
-        """Classify input samples according to their probability estimates.
+    def predict_prob(self, x, *args, **kwargs):
+        """Predict probability of each class for each input.
+
+        These probabilities themselves are useless, because they are always
+        0 or 1.
 
         Parameters
         ----------
@@ -84,10 +86,29 @@ class OVRClassifier(Classifier):
         kwargs : dict, optional
             Keyword arguments to pass to each class label estimator's
             `predict_prob` method.
+        """
+        q = self.predict(x, *args, **kwargs)
+        p = np.zeros((len(x), len(self.classes)))
+        for i in range(len(x)):
+            j = np.where(self.classes == q[i])[0]
+            p[i, j] = 1
+        return p
 
+    def predict(self, x, *args, **kwargs):
+        """Classify input samples according to their probability estimates.
+        Parameters
+        ----------
+        x : array-like
+            Explanatory variable.
+        args : sequence, optional
+            Positional arguments to pass to each class label estimator's
+            `predict_prob` method.
+        kwargs : dict, optional
+            Keyword arguments to pass to each class label estimator's
+            `predict_prob` method.
         Returns
         -------
         Vector of predicted class labels.
         """
-        p = [clf.predict_prob(x, *args, **kwargs) for clf in self._estimators]
+        p = [c.predict_prob(x, *args, **kwargs)[:, 1] for c in self._estimators]
         return self.classes[np.argmax(p, axis=0)]
