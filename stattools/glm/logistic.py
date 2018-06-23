@@ -95,7 +95,7 @@ class LogisticRegression(GLM, BinaryClassifier):
             else:
                 self.penalty = float(penalty)
 
-    def fit(self, x, y, optimizer, *args, **kwargs):
+    def fit(self, x, y, optimizer, names=None, *args, **kwargs):
         """Fit the logistic regression model.
 
         Parameters
@@ -108,6 +108,8 @@ class LogisticRegression(GLM, BinaryClassifier):
             Specifies the optimization algorithm used. If the model's `penalty`
             is None, this is ignored. Otherwise, this is required because it
             specifies how to minimize the penalized loss function.
+        names : list, optional
+            List of feature names corresponding to the columns of `x`.
         args : sequence, optional
             Additional positional arguments to pass to `optimizer`'s optimize().
         kwargs : dict, optional
@@ -118,9 +120,9 @@ class LogisticRegression(GLM, BinaryClassifier):
         This LogisticRegression instance.
         """
         # Validate input
-        x = self._preprocess_x(x=x)
+        x = self._preprocess_features(x=x, names=names)
         y = self._preprocess_classes(y=y)
-        y = self._preprocess_y(y=y, x=x)
+        y = self._preprocess_response(y=y, x=x)
 
         # Maximum likelihood estimation by minimizing the average cross entropy
         self.loss = CrossEntropyLoss(x, y)

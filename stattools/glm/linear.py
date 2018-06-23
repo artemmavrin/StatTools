@@ -91,7 +91,7 @@ class LinearRegression(LinearModel):
     estimation.
     """
 
-    def fit(self, x, y, solver="qr", **kwargs):
+    def fit(self, x, y, names=None, solver="qr", **kwargs):
         """Fit the linear regression model via least squares.
 
         Parameters
@@ -101,6 +101,8 @@ class LinearRegression(LinearModel):
             variables.
         y : array-like, shape (n,)
             Response vector.
+        names : list, optional
+            List of feature names corresponding to the columns of `x`.
         solver : None or str or stattools.optimization.Optimizer, optional
             Specify how to estimate the linear regression model coefficients.
             Acceptable values:
@@ -127,8 +129,8 @@ class LinearRegression(LinearModel):
         This LinearRegression instance.
         """
         # Validate input
-        x = self._preprocess_x(x=x)
-        y = self._preprocess_y(y=y, x=x)
+        x = self._preprocess_features(x=x, names=names)
+        y = self._preprocess_response(y=y, x=x)
 
         if solver is None or solver == "qr":
             # Fit the model using the QR factorization of the design matrix

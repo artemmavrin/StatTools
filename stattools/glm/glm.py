@@ -4,6 +4,7 @@ import abc
 import warnings
 
 import numpy as np
+import pandas as pd
 
 from ..generic import Fittable, Classifier
 from ..utils import validate_samples
@@ -21,6 +22,8 @@ class GLM(Fittable, metaclass=abc.ABCMeta):
     fit_intercept : bool
         Indicates whether the model should include an intercept term. This is
         ignored if `standardize` is True.
+    names : list
+        List of feature/explanatory variable names.
     intercept : float
         The intercept of the GLM.
     coef : numpy.ndarray
@@ -29,6 +32,7 @@ class GLM(Fittable, metaclass=abc.ABCMeta):
 
     standardize: bool = True
     fit_intercept: bool = True
+    names: list = None
 
     # Internal representation of the model coefficients (including intercept)
     _coef: np.ndarray = None
@@ -100,22 +104,46 @@ class GLM(Fittable, metaclass=abc.ABCMeta):
 
         return self._inv_link(self.intercept + x.dot(self.coef))
 
-    def _preprocess_x(self, x):
+    def _preprocess_features(self, x, names):
         """Apply necessary validation and preprocessing to the explanatory
         variable of a generalized linear model to prepare for fitting.
 
         Parameters
         ----------
         x : array-like, shape (n, p)
-            Explanatory variable.
+            Explanatory variables (matrix of n observations of p explanatory
+            variables/features).
+        names : list
+            List of feature names corresponding to the columns of `x`.
 
         Returns
         -------
         x : numpy.ndarray, shape (n, p) or (n, p + 1)
             Updated explanatory variable.
         """
+        # Try to extract feature names from a pandas.DataFrame
+        # This must be done now because validate_samples() returns a Numpy array
+        todo_names = True
+        if names is None and isinstance(x, pd.DataFrame):
+            self.names = x.columns.values.tolist()
+            todo_names = False
+
+        # Check that x is a matrix
         x = validate_samples(x, n_dim=2)
         n, self._p = x.shape
+
+        # Determine feature names if not done above
+        if todo_names:
+            if names is None:
+                # Names will be x0, x1, ..., xp
+                self.names = ["x" + str(n) for n in range(self._p)]
+            else:
+                # Validate the given names
+                if len(names) == self._p \
+                        and all(isinstance(name, str) for name in names):
+                    self.names = list(names)
+                else:
+                    raise ValueError("Invalid feature names given.")
 
         # Standardize or add an intercept column as needed
         if self.standardize:
@@ -130,7 +158,7 @@ class GLM(Fittable, metaclass=abc.ABCMeta):
 
         return x
 
-    def _preprocess_y(self, y, x=None):
+    def _preprocess_response(self, y, x):
         """Apply necessary validation and preprocessing to the response variable
         of a generalized linear model to prepare for fitting.
 

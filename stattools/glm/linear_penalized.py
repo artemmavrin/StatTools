@@ -27,7 +27,7 @@ class Ridge(LinearModel):
         self.lam = float(lam)
         super(Ridge, self).__init__(standardize=True)
 
-    def fit(self, x, y):
+    def fit(self, x, y, names=None):
         """Fit the ridge regression model.
 
         Parameters
@@ -36,14 +36,16 @@ class Ridge(LinearModel):
             Explanatory variables.
         y : array-like, shape (n,)
             Response variable.
+        names : list, optional
+            List of feature names corresponding to the columns of `x`.
 
         Returns
         -------
         This Ridge instance.
         """
         # Validate input
-        x = self._preprocess_x(x=x)
-        y = self._preprocess_y(y=y, x=x)
+        x = self._preprocess_features(x=x, names=names)
+        y = self._preprocess_response(y=y, x=x)
 
         # Fit the model by least squares
         a = x.T.dot(x) + self.lam * np.identity(self._p)
@@ -250,8 +252,8 @@ class ElasticNet(LinearModel):
         self.alpha = float(alpha)
         super(ElasticNet, self).__init__(standardize=True, fit_intercept=True)
 
-    def fit(self, x, y, tol=1e-4, max_iter=1000, random=False, seed=None,
-            callback=None, warm_start=True, verbose=False):
+    def fit(self, x, y, names=None, tol=1e-4, max_iter=1000, random=False,
+            seed=None, callback=None, warm_start=True, verbose=False):
         """Fit the elastic net model using coordinate descent.
 
         Parameters
@@ -266,6 +268,8 @@ class ElasticNet(LinearModel):
             explanatory variable (i.e., a matrix of shape (n, 1)).
         y : array-like, shape (n,)
             The response variable vector (AKA target vector).
+        names : list, optional
+            List of feature names corresponding to the columns of `x`.
         tol : float, optional
             Convergence tolerance.
         max_iter : int, optional
@@ -292,8 +296,8 @@ class ElasticNet(LinearModel):
             This ElasticNet instance.
         """
         # Validate explanatory and response variables
-        x = self._preprocess_x(x=x)
-        y = self._preprocess_y(y=y, x=x)
+        x = self._preprocess_features(x=x, names=names)
+        y = self._preprocess_response(y=y, x=x)
 
         # Initialize the coefficients
         if warm_start and self.fitted:
@@ -326,8 +330,8 @@ class ElasticNet(LinearModel):
         self.fitted = True
         return self
 
-    def path(self, x, y, lam_min, lam_max, n_lam=50, tol=1e-4, max_iter=1000,
-             random=False, seed=None):
+    def path(self, x, y, lam_min, lam_max, n_lam=50, names=None, tol=1e-4,
+             max_iter=1000, random=False, seed=None):
         """Return a regularization path for the coefficients accross a grid of
         lambda values.
 
@@ -343,6 +347,8 @@ class ElasticNet(LinearModel):
             The maximum lambda.
         n_lam : int, optional
             Number of lambdas to consider.
+        names : list, optional
+            List of feature names corresponding to the columns of `x`.
         tol : float, optional
             Convergence tolerance.
         max_iter : int, optional
@@ -367,8 +373,8 @@ class ElasticNet(LinearModel):
             logarithmically.
         """
         # Validate explanatory and response variables
-        x = self._preprocess_x(x=x)
-        y = self._preprocess_y(y=y, x=x)
+        x = self._preprocess_features(x=x, names=names)
+        y = self._preprocess_response(y=y, x=x)
 
         # Initialize the coefficients
         coef0 = np.zeros(self._p)
