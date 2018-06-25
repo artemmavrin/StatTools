@@ -3,6 +3,7 @@ PYTHON := python3
 .PHONY: install test clean
 
 install:
+	rm -rf build dist stattools.egg-info
 	${PYTHON} setup.py install
 
 test:
