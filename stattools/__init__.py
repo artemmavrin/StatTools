@@ -8,7 +8,7 @@ import stattools.optimization
 import stattools.preprocessing
 import stattools.regularization
 import stattools.resampling
-import stattools.sde
+import stattools.simulation
 import stattools.smoothing
 import stattools.survival
 import stattools.utils
