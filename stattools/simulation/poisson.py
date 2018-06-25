@@ -131,6 +131,13 @@ class PoissonProcess(object):
         -------
         The matplotlib.axes.Axes object on which the plot was drawn.
         """
+        # Validate parameters
+        if isinstance(end, numbers.Real) and float(end) > 0:
+            end = float(end)
+        else:
+            raise ValueError("Parameter 'end' must be a positive float.")
+
+        # Get the axes to draw on if necessary
         if ax is None:
             ax = plt.gca()
 
