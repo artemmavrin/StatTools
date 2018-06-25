@@ -62,4 +62,5 @@ Moreover, StatTools is on the [Python Package Index (PyPI)](https://pypi.org/pro
 
 ### Simulation
 
+* [Simulating sample paths of Poisson processes](https://github.com/artemmavrin/StatTools/blob/master/examples/Poisson%20Process.ipynb)
 * [Simulating sample paths of Itô diffusions](https://github.com/artemmavrin/StatTools/blob/master/examples/Ito%20Diffusions.ipynb)
