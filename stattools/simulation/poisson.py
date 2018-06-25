@@ -43,33 +43,6 @@ class PoissonProcess(object):
     # The expanding array of arrival times
     _times: np.ndarray = None
 
-    def times(self, n=None) -> np.ndarray:
-        """Get the first n arrival times of the Poisson process.
-
-        Parameters
-        ----------
-        n : int, optional
-            Specify how many times to return. If not specified, all the
-            currently generated times are returned.
-
-        Returns
-        -------
-        One-dimensional NumPy array of Poisson process arrival times.
-        """
-        # Validate parameters
-        if n is None:
-            n = self._count
-        elif isinstance(n, numbers.Integral) and int(n) > 0:
-            n = int(n)
-        else:
-            raise ValueError("Parameter 'n' must be a positive integer.")
-
-        # Generated more arrival times if needed
-        while self._count < n:
-            next(self)
-
-        return self._times[:n]
-
     def __init__(self, rate=1.0, random_state=None):
         """Initialize a Poisson process by specifying the rate.
 
@@ -114,6 +87,33 @@ class PoissonProcess(object):
     def __iter__(self):
         """Return self to adhere to the iterator protocol."""
         return self
+
+    def times(self, n=None) -> np.ndarray:
+        """Get the first n arrival times of the Poisson process.
+
+        Parameters
+        ----------
+        n : int, optional
+            Specify how many times to return. If not specified, all the
+            currently generated times are returned.
+
+        Returns
+        -------
+        One-dimensional NumPy array of Poisson process arrival times.
+        """
+        # Validate parameters
+        if n is None:
+            n = self._count
+        elif isinstance(n, numbers.Integral) and int(n) > 0:
+            n = int(n)
+        else:
+            raise ValueError("Parameter 'n' must be a positive integer.")
+
+        # Generated more arrival times if needed
+        while self._count < n:
+            next(self)
+
+        return self._times[:n]
 
     def plot(self, end, ax=None, **kwargs):
         """Plot one sample path of the Poisson process on the interval [0, end].
