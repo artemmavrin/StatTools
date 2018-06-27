@@ -1,5 +1,6 @@
 """Statistical learning and inference algorithms implemented in pure Python."""
 
+import stattools.cluster
 import stattools.datasets
 import stattools.ensemble
 import stattools.generic

@@ -40,6 +40,7 @@ Moreover, StatTools is on the [Python Package Index (PyPI)](https://pypi.org/pro
 
 ### Unsupervised Learning
 
+* [K-means clustering for grouping unlabelled data together](https://github.com/artemmavrin/StatTools/blob/master/examples/K-Means%20Clustering.ipynb)
 * [Principal component analysis applied to handwritten digits](https://github.com/artemmavrin/StatTools/blob/master/examples/Principal%20Component%20Analysis.ipynb)
 * [Kernel density estimation for histogram smoothing](https://github.com/artemmavrin/StatTools/blob/master/examples/Kernel%20Density%20Estimation.ipynb)
 
