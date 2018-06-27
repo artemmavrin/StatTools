@@ -1,14 +1,14 @@
-"""Unit tests for the ClusterKMeans class."""
+"""Unit tests for the KMeansCluster class."""
 
 import unittest
 from itertools import product
 
 import numpy as np
 
-from stattools.cluster import ClusterKMeans
+from stattools.cluster import KMeansCluster
 
 
-class TestClusterKMeans(unittest.TestCase):
+class TestKMeansCluster(unittest.TestCase):
     def test_perfect_separation(self):
         """Check that perfectly separated data are clustered correctly."""
         # Number of clusters
@@ -28,7 +28,7 @@ class TestClusterKMeans(unittest.TestCase):
                 xs.append(rs.uniform(low=low, high=high, size=(n, p)))
             x = np.row_stack(xs)
 
-            model = ClusterKMeans(k=k)
+            model = KMeansCluster(k=k)
             model.fit(x, random_state=rs)
             clusters = model.predict(x)
 

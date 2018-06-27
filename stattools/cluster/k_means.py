@@ -1,12 +1,14 @@
 """Implementation of the k-means clustering algorithm.
 
-See Section 14.3.6 of Hastie, Tibshirani, & Friedman (2009).
+See Section 14.3.6 of Hastie, Tibshirani, & Friedman (2009) and Section 9.1 of
+Bishop (2006).
 
 References
 ----------
 Trevor Hastie, Robert Tibshirani, and Jerome Friedman. The Elements of
     Statistical Learning: Data Mining, Inference, and Prediction (Second).
     Springer 2009
+Christopher Bishop. Pattern Recognition and Machine Learning. Springer 2006.
 """
 
 import itertools
@@ -18,7 +20,7 @@ from ..generic import Predictor
 from ..utils import validate_samples
 
 
-class ClusterKMeans(Predictor):
+class KMeansCluster(Predictor):
     """Partition data into K clusters based on minimizing the
     within-cluster-sum-of-squares loss function.
 
@@ -88,13 +90,14 @@ class ClusterKMeans(Predictor):
             is imposed.
         repeats : int, optional
             Number of times to repeat the algorithm with different initial
-            center assignments.
+            center assignments. This can decrease the chance of finding only
+            non-global minima of the loss function
         random_state : int or numpy.random.RandomState object, optional
             A valid initializer for a numpy.random.RandomState object.
 
         Returns
         -------
-        This ClusterKMeans instance.
+        This KMeansCluster instance.
         """
         # Validate parameters
         x = validate_samples(x, n_dim=2)
@@ -136,17 +139,43 @@ class ClusterKMeans(Predictor):
                 self._x_std[self._x_std == 0] = 1.0
             x = (x - self._x_mean) / self._x_std
 
-        # Repeat the k-means clustering algorithm
+        # Repeat the k-means clustering algorithm to decrease the chance of
+        # finding only non-global minima of the loss function
         for i in range(repeats):
             # Initialize random starting cluster centers by choosing k
-            # observations with replacement from the feature matrix
+            # observations without replacement from the feature matrix
             ind = random_state.choice(n, size=self.k, replace=False)
-            # Run the k-means algorithms starting at the initial cluster centers
-            centers[i], clusters = _fit_clusters(x, centers=x.take(ind, axis=0),
-                                                 tol=tol, iterations=iterations)
+            centers_ = x.take(ind, axis=0)
+
+            if iterations is None:
+                counter = itertools.count()
+            else:
+                counter = range(iterations)
+
+            # Perform the k-means clustering algorithm (an EM algorithm)
+            for _ in counter:
+                # Save the current centers for later
+                centers_old = centers_
+
+                # (E step) Assign each observation to a cluster
+                clusters = _assign_clusters(x, centers_)
+
+                # (M step) Get new centers as the means of the currently
+                # assigned clusters
+                centers_ = np.zeros(shape=(self.k, p), dtype=np.float_)
+                for j in range(self.k):
+                    centers_[j, :] = np.mean(x[clusters == j, :], axis=0)
+
+                # Check for convergence
+                if np.linalg.norm(centers_ - centers_old) < tol:
+                    break
+
+            # Save the resulting centers and compute final cluster assignments
+            centers[i] = centers_
+            clusters = _assign_clusters(x, centers_)
+
             # Evaluate the clusters by their within-cluster-sum-of-squares
-            loss[i] = _within_cluster_sum_of_squares(x, clusters=clusters,
-                                                     centers=centers[i])
+            loss[i] = _k_means_loss(x, clusters=clusters, centers=centers_)
 
         # Choose the cluster center assignment that minimizes the loss
         self._centers = centers[np.argmin(loss)]
@@ -183,7 +212,7 @@ class ClusterKMeans(Predictor):
         return _assign_clusters(x, self._centers)
 
 
-def _within_cluster_sum_of_squares(x: np.ndarray, clusters, centers):
+def _k_means_loss(x: np.ndarray, clusters, centers):
     """Compute the within-cluster-sum-of-squares loss function.
 
     Parameters
@@ -228,46 +257,3 @@ def _assign_clusters(x: np.ndarray, centers: np.ndarray):
     for i, obs in enumerate(x):
         clusters[i] = np.argmin(np.linalg.norm(obs - centers, axis=1))
     return clusters
-
-
-def _fit_clusters(x: np.ndarray, centers: np.ndarray, tol, iterations):
-    """Perform the k-means clustering algorithm.
-
-    Parameters
-    ----------
-    x : numpy.ndarray
-        Feature matrix of shape (n, p) to cluster.
-    centers : numpy.ndarray
-        Array of shape (k, p) of the initial centers of each of the k clusters.
-    tol : float
-        Positive tolerance for algorithm convergence. If the Euclidean distance
-        between the centers in successive iterations is less than `tol`, the
-        algorithm stops early.
-    iterations : int or None
-        Maximum number of iterations to perform. If None, no maximum number is
-        imposed.
-    """
-    # n = number of observations, p = number of features
-    n, p = x.shape
-
-    # Number of clusters
-    k = len(centers)
-
-    counter = itertools.count() if iterations is None else range(iterations)
-    for _ in counter:
-        # Assign each observation to a cluster
-        clusters = _assign_clusters(x, centers)
-
-        # Save the current centers for later
-        centers_old = centers
-
-        # Get new centers as the means of the currently assigned clusters
-        centers = np.zeros(shape=(k, p), dtype=np.float_)
-        for j in range(k):
-            centers[j, :] = np.mean(x[clusters == j, :], axis=0)
-
-        # Check for convergence
-        if np.linalg.norm(centers - centers_old) < tol:
-            break
-
-    return centers, clusters

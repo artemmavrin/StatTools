@@ -1,3 +1,3 @@
 """Unsupervised clustering algorithms."""
 
-from .k_means import ClusterKMeans
+from .k_means import KMeansCluster
