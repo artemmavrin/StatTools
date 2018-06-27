@@ -127,25 +127,12 @@ class KaplanMeier(Fittable):
         if ax is None:
             ax = plt.gca()
 
-        size = 2 * len(self.survival) + 2
-
         # Plot the survival curve
-        x = np.zeros(size, dtype=np.float_)
-        y = np.zeros(size, dtype=np.float_)
-
-        x[0] = 0.0
-        y[0] = 1.0
-        for i in range(len(self.survival)):
-            x[2 * i + 1] = self._failure[i]
-            x[2 * i + 2] = self._failure[i]
-            y[2 * i + 1] = y[2 * i]
-            y[2 * i + 2] = self.survival[i]
-        x[-1] = self.time[-1]
-        y[-1] = self.survival[-1]
-
-        params = {"label": "Kaplan-Meier estimate"}
+        x = np.concatenate(([0.0], self._failure, [self.time[-1]]))
+        y = np.concatenate(([1.0], self.survival, [self.survival[-1]]))
+        params = dict(where="post", label="Kaplan-Meier estimate")
         params.update(kwargs)
-        p = ax.plot(x, y, **params)
+        p = ax.step(x, y, **params)
 
         # Mark the censored times
         if marker is not None:
