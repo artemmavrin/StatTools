@@ -7,6 +7,7 @@ import numpy as np
 import scipy.stats as st
 
 from .plotting import abline, func_plot
+from ..utils import validate_samples
 
 
 def _rug_plot(data, ax=None, **kwargs):
@@ -50,8 +51,8 @@ def ecdf_plot(data, cdf=None, rug=False, cb=False, alpha=0.05, ax=None,
     cb_kwargs: dict, optional
         Keyword arguments to pass to the function plotting the confidence bands.
         Ignored if `cdf` is None.
-    ax: matplotlib axis, optional
-        The axis on which to draw the QQ plot.
+    ax: matplotlib.axes.Axes, optional
+        The axes on which to draw the ECDF plot.
         If this is not specified, the current axis will be used.
     kwargs: dict, optional
         Additional keyword arguments to pass to the plot function when drawing
@@ -59,34 +60,21 @@ def ecdf_plot(data, cdf=None, rug=False, cb=False, alpha=0.05, ax=None,
 
     Returns
     -------
-    The axis on which the line was drawn.
+    The axes on which the line was drawn.
     """
     # Validate data
-    if np.ndim(data) != 1:
-        raise ValueError("Data must be 1-dimensional")
+    data = validate_samples(data, n_dim=1)
 
-    # Compute the ECDF
-    data = np.asarray(data)
-    points, counts = np.unique(data, return_counts=True)
-    size = 2 * len(points) - 1
-    x_ecdf = np.zeros(size)
-    y_ecdf = np.zeros(size)
-
-    x_ecdf[0] = points[0]
-    y_ecdf[0] = counts[0] / data.size
-    for i in range(len(points) - 1):
-        x_ecdf[2 * i + 1] = points[i + 1]
-        x_ecdf[2 * i + 2] = points[i + 1]
-        y_ecdf[2 * i + 1] = y_ecdf[2 * i]
-        y_ecdf[2 * i + 2] = y_ecdf[2 * i] + counts[i + 1] / data.size
-
+    # Get axes if necessary
     if ax is None:
         ax = plt.gca()
 
-    # Plot the ECDF
-    ecdf_params = {"zorder": 2, "label": "Empirical CDF"}
+    # Plot the ECDF or empirical survival function
+    x, counts = np.unique(data, return_counts=True)
+    y = np.cumsum(counts) / len(data)
+    ecdf_params = dict(zorder=2, label="Empirical CDF", where="post")
     ecdf_params.update(kwargs)
-    ax.plot(x_ecdf, y_ecdf, **ecdf_params)
+    ax.step(x, y, **ecdf_params)
 
     if cdf is not None:
         # Determine distribution
@@ -123,16 +111,16 @@ def ecdf_plot(data, cdf=None, rug=False, cb=False, alpha=0.05, ax=None,
 
         # Compute upper and lower confidence bounds
         e = np.sqrt(np.log(2 / alpha) / (2 * len(data)))
-        lower = [max(y_ - e, 0) for y_ in y_ecdf]
-        upper = [min(y_ + e, 1) for y_ in y_ecdf]
+        lower = [max(y_ - e, 0) for y_ in y]
+        upper = [min(y_ + e, 1) for y_ in y]
 
         # Plot confidence band
         cb_params = {"c": "gray", "ls": "--", "zorder": 1.5}
         if cb_kwargs is not None:
             cb_params.update(cb_kwargs)
         label = f"{100 * (1 - alpha):.0f}% Confidence Band"
-        ax.plot(x_ecdf, upper, label=label, **cb_params)
-        ax.plot(x_ecdf, lower, **cb_params)
+        ax.plot(x, upper, label=label, **cb_params)
+        ax.plot(x, lower, **cb_params)
 
     if rug:
         if rug_kwargs is None:
