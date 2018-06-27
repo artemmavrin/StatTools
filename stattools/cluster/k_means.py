@@ -28,22 +28,49 @@ class ClusterKMeans(Predictor):
         The number of clusters.
     centers : numpy.ndarray
         The centers of each cluster.
+    standardize : bool
+        Indicate whether the input data should be standardized.
     """
     k: int = None
-    centers: np.ndarray = None
+    standardize: bool = None
 
-    def __init__(self, k):
+    # Cluster centers in terms of possibly standardized units
+    _centers: np.ndarray = None
+
+    # Vectors of means and standard deviations of the feature matrix columns
+    _x_mean: np.ndarray = None
+    _x_std: np.ndarray = None
+
+    def __init__(self, k, standardize=True):
         """Initialize a ClusterKMeans object.
 
         Parameters
         ----------
         k : int
             The number of clusters.
+        standardize : bool
+            Indicate whether the input data should be standardized.
         """
         if isinstance(k, numbers.Integral) and int(k) > 1:
             self.k = int(k)
         else:
             raise ValueError("Parameter 'k' must be an integer greater than 1.")
+        if isinstance(standardize, bool):
+            self.standardize = standardize
+        else:
+            raise ValueError("Parameter 'standardize' must be boolean.")
+
+    @property
+    def centers(self):
+        """Get the centers of each cluster."""
+        # Check if the model is fitted
+        if not self.fitted:
+            raise self.unfitted_exception
+        # Undo standardization if necessary
+        if self.standardize:
+            return self._x_mean + self._x_std * self._centers
+        else:
+            return self._centers
 
     def fit(self, x, tol=1e-5, iterations=None, repeats=5, random_state=None):
         """Fit the K-means cluster model to data.
@@ -101,8 +128,17 @@ class ClusterKMeans(Predictor):
         # Initialize array of within-cluster-sum-of-squares losses
         loss = np.empty(shape=repeats)
 
+        # Standardize data if necessary
+        if self.standardize:
+            self._x_mean = x.mean(axis=0)
+            self._x_std = x.std(axis=0, ddof=0)
+            if np.any(self._x_std == 0):
+                self._x_std[self._x_std == 0] = 1.0
+            x = (x - self._x_mean) / self._x_std
+
+        # Repeat the k-means clustering algorithm
         for i in range(repeats):
-            # Initialize random initial cluster centers by choosing k
+            # Initialize random starting cluster centers by choosing k
             # observations with replacement from the feature matrix
             ind = random_state.choice(n, size=self.k, replace=False)
             # Run the k-means algorithms starting at the initial cluster centers
@@ -113,7 +149,7 @@ class ClusterKMeans(Predictor):
                                                      centers=centers[i])
 
         # Choose the cluster center assignment that minimizes the loss
-        self.centers = centers[np.argmin(loss)]
+        self._centers = centers[np.argmin(loss)]
 
         self.fitted = True
         return self
@@ -139,8 +175,12 @@ class ClusterKMeans(Predictor):
         # Validate the feature matrix
         x = validate_samples(x, n_dim=2)
 
+        # Standardize data if necessary
+        if self.standardize:
+            x = (x - self._x_mean) / self._x_std
+
         # Return cluster assignments
-        return _assign_clusters(x, self.centers)
+        return _assign_clusters(x, self._centers)
 
 
 def _within_cluster_sum_of_squares(x: np.ndarray, clusters, centers):
