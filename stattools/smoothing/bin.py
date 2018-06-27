@@ -128,9 +128,11 @@ class BinSmoother(ScatterplotSmoother):
         for i in range(self.n_bins):
             x = [max(x_min, self.bins[i]), min(x_max, self.bins[i + 1])]
             y = [self.means[i], self.means[i]]
-            ax.plot(x, y, **kwargs)
+            p = ax.plot(x, y, **kwargs)
             if "label" in kwargs:
                 del kwargs["label"]
+            if "color" not in kwargs and "c" not in kwargs:
+                kwargs["color"] = p[0].get_color()
 
         # Set the axes bounds
         ax.set(xlim=(x_min, x_max))
