@@ -15,13 +15,14 @@ import numpy as np
 import scipy.stats as st
 
 from ..cluster import KMeansCluster
-from ..generic import Fittable
+from ..generic import Classifier
+from ..utils.validation import validate_bool
 from ..utils.validation import validate_float
 from ..utils.validation import validate_int
-from ..utils.validation import validate_samples
+from ..utils.validation import validate_sample
 
 
-class GaussianMixture(Fittable):
+class GaussianMixture(Classifier):
     """Estimate the parameters of a Gaussian mixture model (GMM).
 
     Parameters are estimated by numerical MLE (maximum likelihood estimation)
@@ -68,6 +69,9 @@ class GaussianMixture(Fittable):
         """
         # Validate parameters
         self.k = validate_int(k, "k", minimum=1)
+
+        # The classes are Gaussian components 0, ..., k-1
+        self.classes = np.arange(self.k)
 
     def fit(self, x, tol=1e-5, iterations=None, repeats=5, random_state=None,
             init_iterations=10, init_repeats=30, cluster_kwargs=None):
@@ -186,6 +190,31 @@ class GaussianMixture(Fittable):
         self.fitted = True
         return self
 
+    def predict_prob(self, x):
+        """Return probability that an observation belongs to each of the k
+        components.
+
+        Parameters
+        ----------
+        x : array-like
+            Sample matrix of shape (n, p) (n=number of observations, p=number of
+            features). The number of features must be the same as in the sample
+            matrix used to fit the model.
+
+        Returns
+        -------
+        p : numpy.ndarray of shape (n, k).
+            The (i, j) entry of p is the estimated probability that the i-th
+            observation came from the j-th component.
+        """
+        if not self.fitted:
+            raise self.unfitted_exception
+
+        x = _validate_x(x, self.p)
+
+        densities = _densities(x, self.k, self.means, self.covs)
+        return _responsibility(densities, self.weights)
+
     def pdf(self, x):
         """Compute the resulting Gaussian mixture model's density function.
 
@@ -195,20 +224,146 @@ class GaussianMixture(Fittable):
             Sample matrix of shape (n, p) (n=number of observations, p=number of
             features). The number of features must be the same as in the sample
             matrix used to fit the model.
+
+        Returns
+        -------
+        A numpy.ndarray of shape (n,). The i-th entry is the Gaussian mixture
+        model density applied to the i-th row of x.
         """
         if not self.fitted:
             raise self.unfitted_exception
 
-        # Validate the data matrix
-        x = validate_samples(x, n_dim=2)
-        if x.shape[1] != self.p:
-            raise ValueError(f"Data has wrong number of columns: expected "
-                             f"{self.p}, found {x.shape[1]}")
+        x = _validate_x(x, self.p)
 
         val = _densities(x, self.k, self.means, self.covs).dot(self.weights)
         return val.reshape(-1)
 
-    def plot(self, num=200, ax=None, **kwargs):
+    def log_likelihood(self, x):
+        """Compute the log-likelihood of the model given the sample `x`.
+
+        Parameters
+        ----------
+        x : array-like
+            Sample matrix of shape (n, p) (n=number of observations, p=number of
+            features). The number of features must be the same as in the sample
+            matrix used to fit the model.
+
+        Returns
+        -------
+        ll : float
+            The log-likelihood.
+        """
+        if not self.fitted:
+            raise self.unfitted_exception
+
+        x = _validate_x(x, self.p)
+
+        densities = _densities(x, k=self.k, means=self.means, covs=self.covs)
+        return _log_likelihood(self.weights, densities)
+
+    @property
+    def n_parameters(self):
+        """Get the number of parameters of the Gaussian mixture model.
+
+        Note that the number of parameters in a p-dimensional Gaussian mixture
+        model with k components is
+
+            m = (k * p) + (k * p * (p + 1) / 2) + (k - 1)
+
+        The first term comes from the k p-dimensional mean vectors, the second
+        from the k p-by-p symmetric covariance matrices, and the third from the
+        k weights constrained to sum to 1.
+
+        Returns
+        -------
+        The number of parameters.
+        """
+        if not self.fitted:
+            raise self.unfitted_exception
+        return (self.k * self.p + self.k * self.p * (self.p + 1) // 2
+                + self.k - 1)
+
+    def aic(self, x, correction=True):
+        """Compute the Akaike information criterion (AIC) or corrected Akaike
+        information criterion (AICc) for a sample. These are defined as
+
+            AIC = 2 * m - 2 * log(L),
+            AICc = 2 * m * (m + 1) / (n - m - 1) - 2 * log(L),
+
+        where n is the number of observations in the sample `x`, m is the number
+        of parameters of the Gaussian mixture model, and L is the log-likelihood
+        of the model given the sample `x`. Models with lower AIC or AICc are
+        preferred.
+
+        Parameters
+        ----------
+        x : array-like
+            Sample matrix of shape (n, p) (n=number of observations, p=number of
+            features). The number of features must be the same as in the sample
+            matrix used to fit the model.
+        correction : bool
+            If True, compute AICc. If False, compute AIC.
+
+        Returns
+        -------
+        aic : float
+            The Akaike information criterion or corrected Akaike information
+            criterion.
+        """
+        if not self.fitted:
+            raise self.unfitted_exception
+
+        # Validate parameters
+        x = _validate_x(x, self.p)
+        correction = validate_bool(correction, "correction")
+
+        m = self.n_parameters
+        ll = self.log_likelihood(x)
+
+        if correction:
+            return 2 * m * (m + 1) / (len(x) - m - 1) - 2 * ll
+        else:
+            return 2 * m - 2 * ll
+
+    def bic(self, x):
+        """Compute the Bayesian information criterion (BIC) for a sample. This
+        is defined as
+
+            BIC = log(n) * m - 2 * log(L),
+
+        where n is the number of observations in the sample `x`, m is the number
+        of parameters of the Gaussian mixture model, and L is the log-likelihood
+        of the model given the sample `x`. Models with lower BIC are preferred.
+
+        Note that the number of parameters in a p-dimensional Gaussian mixture
+        model with k components is
+
+            m = k*p + k*p*(p+1)/2 + (k-1)
+
+        The first term comes from the k p-dimensional mean vectors, the second
+        from the k p-by-p symmetric covariance matrices, and the third from the
+        k weights constrained to sum to 1.
+
+        Parameters
+        ----------
+        x : array-like
+            Sample matrix of shape (n, p) (n=number of observations, p=number of
+            features). The number of features must be the same as in the sample
+            matrix used to fit the model.
+
+        Returns
+        -------
+        bic : float
+            The Bayesian information criterion.
+        """
+        if not self.fitted:
+            raise self.unfitted_exception
+
+        x = _validate_x(x, self.p)
+
+        return np.log(len(x)) * self.n_parameters - 2 * self.log_likelihood(x)
+
+    def plot(self, num=200, fill=True, ax=None, **kwargs):
         """Plot the Gaussian mixture density in the 1D and 2D cases.
 
         In the 1D case, the density curve is plotted. In the 2D case, a contour
@@ -218,6 +373,9 @@ class GaussianMixture(Fittable):
         ----------
         num : int
             Number of points to sample.
+        fill : bool, optional
+            Indicates whether to use contourf (True) or contour (False) to plot
+            contours in the 2D case.
         ax : matplotlib.axes.Axes, optional
             The matplotlib.axes.Axes on which to plot.
         kwargs : dict
@@ -229,6 +387,7 @@ class GaussianMixture(Fittable):
         The matplotlib.axes.Axes on which the density was plotted.
         """
         num = validate_int(num, "num", minimum=1)
+        fill = validate_bool(fill, "fill")
 
         if ax is None:
             ax = plt.gca()
@@ -246,7 +405,10 @@ class GaussianMixture(Fittable):
             xx, yy = np.meshgrid(x, y)
             data = np.column_stack((xx.ravel(), yy.ravel()))
             density = self.pdf(data).reshape(-1, num)
-            ax.contourf(xx, yy, density, **kwargs)
+            if fill:
+                ax.contourf(xx, yy, density, **kwargs)
+            else:
+                ax.contour(xx, yy, density, **kwargs)
         else:
             raise AttributeError(
                 "GMM plotting is only supported for 1D and 2D models.")
@@ -380,7 +542,7 @@ def _init_param_random(x: np.ndarray, k: int,
     return means, covs, weights
 
 
-def _densities(x, k, means, covs):
+def _densities(x: np.ndarray, k: int, means: np.ndarray, covs: np.ndarray):
     """Compute the Gaussian density for each observation and each component.
 
     Parameters
@@ -556,6 +718,28 @@ def _log_likelihood(weights, densities):
     return np.sum(np.log(densities.dot(weights)))
 
 
+def _validate_x(x, p=None) -> np.ndarray:
+    """Validate a data matrix for Gaussian mixture model computations.
+
+    Parameters
+    ----------
+    x : array-like
+        Matrix of shape (n, p).
+    p : int, optional
+        Expected number of columns.
+
+    Returns
+    -------
+    x as an numpy.ndarray if all validations passed.
+    """
+    x = validate_sample(x, n_dim=2)
+    if p is not None:
+        if x.shape[1] != p:
+            raise ValueError(f"Data matrix has wrong number of columns: "
+                             f"expected {p}, found {x.shape[1]}")
+    return x
+
+
 def _validate_fit_params(x, k, tol, iterations, repeats, init_iterations,
                          init_repeats):
     """Validate the parameters for GaussianMixture.fit().
@@ -568,7 +752,7 @@ def _validate_fit_params(x, k, tol, iterations, repeats, init_iterations,
     -------
     The updated parameters.
     """
-    x = validate_samples(x, n_dim=2)
+    x = validate_sample(x, n_dim=2)
     if len(x) <= k:
         print("There must be more observations than Gaussian components.")
 
