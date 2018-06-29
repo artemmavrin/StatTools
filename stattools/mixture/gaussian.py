@@ -9,7 +9,6 @@ Christopher Bishop. Pattern Recognition and Machine Learning. Springer-Verlag
 """
 
 import itertools
-import numbers
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,7 +16,9 @@ import scipy.stats as st
 
 from ..cluster import KMeansCluster
 from ..generic import Fittable
-from ..utils import validate_samples
+from ..utils.validation import validate_float
+from ..utils.validation import validate_int
+from ..utils.validation import validate_samples
 
 
 class GaussianMixture(Fittable):
@@ -66,10 +67,7 @@ class GaussianMixture(Fittable):
             Number of components in the Gaussian mixture model.
         """
         # Validate parameters
-        if isinstance(k, numbers.Integral) and int(k) > 0:
-            self.k = int(k)
-        else:
-            raise ValueError("Parameter 'k' must be a positive integer.")
+        self.k = validate_int(k, "k", minimum=1)
 
     def fit(self, x, tol=1e-5, iterations=None, repeats=5, random_state=None,
             init_iterations=10, init_repeats=30, cluster_kwargs=None):
@@ -230,10 +228,8 @@ class GaussianMixture(Fittable):
         -------
         The matplotlib.axes.Axes on which the density was plotted.
         """
-        if isinstance(num, numbers.Integral) and int(num) > 0:
-            num = int(num)
-        else:
-            raise ValueError("Parameter 'num' must be a positive int.")
+        num = validate_int(num, "num", minimum=1)
+
         if ax is None:
             ax = plt.gca()
 
@@ -574,36 +570,18 @@ def _validate_fit_params(x, k, tol, iterations, repeats, init_iterations,
     """
     x = validate_samples(x, n_dim=2)
     if len(x) <= k:
-        print("There must be more observations than number of Gaussians.")
+        print("There must be more observations than Gaussian components.")
 
-    if isinstance(tol, numbers.Real) and float(tol) > 0:
-        tol = float(tol)
-    else:
-        raise ValueError("Parameter 'tol' must be a positive float.")
+    tol = validate_float(tol, "tol", positive=True)
 
-    if iterations is None:
-        pass
-    elif isinstance(iterations, numbers.Integral) and int(iterations) > 0:
-        iterations = int(iterations)
-    else:
-        raise ValueError("Parameter 'iterations' must be a positive int.")
+    if iterations is not None:
+        iterations = validate_int(iterations, "iterations", minimum=1)
 
-    if isinstance(repeats, numbers.Integral) and int(repeats) > 0:
-        repeats = int(repeats)
-    else:
-        raise ValueError("Parameter 'repeats' must be a positive integer.")
+    repeats = validate_int(repeats, "repeats", minimum=1)
 
-    if iterations is None:
-        pass
-    elif isinstance(init_iterations, numbers.Integral) and \
-            int(init_iterations) > 0:
-        init_iterations = int(init_iterations)
-    else:
-        raise ValueError("Parameter 'init_iterations' must be a positive int.")
+    init_iterations = validate_int(init_iterations, "init_iterations",
+                                   minimum=1)
 
-    if isinstance(init_repeats, numbers.Integral) and int(init_repeats) > 0:
-        init_repeats = int(init_repeats)
-    else:
-        raise ValueError("Parameter 'init_repeats' must be a positive integer.")
+    init_repeats = validate_int(init_repeats, "init_repeats", minimum=1)
 
     return x, tol, iterations, repeats, init_iterations, init_repeats

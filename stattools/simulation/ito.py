@@ -1,9 +1,9 @@
 """Simulate sample paths of Itô diffusions."""
 
-import numbers
-
 import matplotlib.pyplot as plt
 import numpy as np
+
+from ..utils.validation import validate_float
 
 
 class ItoDiffusion(object):
@@ -62,14 +62,8 @@ class ItoDiffusion(object):
             self.diffusion = np.vectorize(diffusion)
         else:
             raise ValueError("Parameter 'diffusion' must be callable.")
-        if isinstance(x0, numbers.Real):
-            self.x0 = float(x0)
-        else:
-            raise ValueError("Parameter 'x0' must be a float.")
-        if isinstance(step, numbers.Real) and float(step) > 0:
-            self.step = float(step)
-        else:
-            raise ValueError("Parameter 'step' must be a positive float.")
+        self.x0 = validate_float(x0, "x0")
+        self.step = validate_float(step, "step", positive=True)
 
         # Seed the RNG
         if isinstance(random_state, np.random.RandomState):
@@ -89,8 +83,9 @@ class ItoDiffusion(object):
                                                 size=1)
 
         # Generate the next value of the process by the Euler-Maruyama method
-        self._value = self._value + self.drift(self._value) * self.step \
-                      + self.diffusion(self._value) * bm_increment
+        self._value = self._value + self.drift(
+            self._value) * self.step + self.diffusion(
+            self._value) * bm_increment
 
         # Increment the time
         self._steps += 1
@@ -123,10 +118,7 @@ class ItoDiffusion(object):
             The values of the sample path at the times in `t`.
         """
         # Validate parameters
-        if isinstance(end, numbers.Real) and float(end) > 0:
-            end = float(end)
-        else:
-            raise ValueError("Parameter 'end' must be a positive float.")
+        end = validate_float(end, "end", positive=True)
 
         # Generate more of the path if necessary
         while self._steps * self.step <= end:
@@ -154,12 +146,6 @@ class ItoDiffusion(object):
         -------
         The matplotlib.axes.Axes object on which the plot was drawn.
         """
-        # Validate parameters
-        if isinstance(end, numbers.Real) and float(end) > 0:
-            end = float(end)
-        else:
-            raise ValueError("Parameter 'end' must be a positive float.")
-
         # Get the axes to draw on if necessary
         if ax is None:
             ax = plt.gca()

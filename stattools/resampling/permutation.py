@@ -1,11 +1,10 @@
 """Implements permutations tests."""
 
-import numbers
 from itertools import accumulate, permutations
 
 import numpy as np
 
-from ..utils import validate_samples, validate_func
+from ..utils import validate_samples, validate_func, validate_int
 
 # Number of permutations to randomly sample unless otherwise specified
 _DEFAULT_MONTE_CARLO_SIZE = 1000
@@ -36,7 +35,7 @@ class PermutationTest(object):
     n_perm: int
 
     # Observed value of the test statistic
-    observed: object
+    observed = None
 
     # Indicator for whether an exact or a Monte Carlo test was performed
     exact: bool
@@ -96,10 +95,8 @@ class PermutationTest(object):
                 n_perm = np.math.factorial(len(data))
             else:
                 n_perm = _DEFAULT_MONTE_CARLO_SIZE
-        elif not isinstance(n_perm, numbers.Integral) or n_perm <= 0:
-            raise TypeError("Parameter 'n_perm' must be a positive integer")
         else:
-            n_perm = int(n_perm)
+            n_perm = validate_int(n_perm, "n_perm", minimum=1)
 
         # We do not pre-allocate an array for the sampling distribution of the
         # statistic on the permuted samples because we do not know the dimension

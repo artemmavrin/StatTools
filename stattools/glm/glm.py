@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from ..generic import Fittable, Classifier
-from ..utils import validate_samples
+from ..utils.validation import validate_samples
 
 
 class GLM(Fittable, metaclass=abc.ABCMeta):

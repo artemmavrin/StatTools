@@ -1,9 +1,9 @@
 """Simulate sample paths of a Poisson process."""
 
-import numbers
-
 import matplotlib.pyplot as plt
 import numpy as np
+
+from ..utils.validation import validate_float, validate_int
 
 
 class PoissonProcess(object):
@@ -55,10 +55,7 @@ class PoissonProcess(object):
             A valid initializer for a numpy.random.RandomState object.
         """
         # Validate the rate
-        if isinstance(rate, numbers.Real) and float(rate) > 0:
-            self.rate = float(rate)
-        else:
-            raise ValueError("Parameter 'float' must be a positive float.")
+        self.rate = validate_float(rate, "rate", positive=True)
 
         # Seed the RNG
         if isinstance(random_state, np.random.RandomState):
@@ -104,10 +101,8 @@ class PoissonProcess(object):
         # Validate parameters
         if n is None:
             n = self._count
-        elif isinstance(n, numbers.Integral) and int(n) > 0:
-            n = int(n)
         else:
-            raise ValueError("Parameter 'n' must be a positive integer.")
+            n = validate_int(n, "n", minimum=1)
 
         # Generated more arrival times if needed
         while self._count < n:
@@ -132,10 +127,7 @@ class PoissonProcess(object):
         The matplotlib.axes.Axes object on which the plot was drawn.
         """
         # Validate parameters
-        if isinstance(end, numbers.Real) and float(end) > 0:
-            end = float(end)
-        else:
-            raise ValueError("Parameter 'end' must be a positive float.")
+        end = validate_float(end, "end", positive=True)
 
         # Get the axes to draw on if necessary
         if ax is None:

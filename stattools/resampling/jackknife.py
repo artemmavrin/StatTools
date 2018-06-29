@@ -1,11 +1,9 @@
 """The Quenouille-Tukey jackknife for bias and standard error estimation."""
 
-import numbers
-
 import numpy as np
 import scipy.stats as st
 
-from ..utils import validate_samples, validate_func
+from ..utils import validate_samples, validate_func, validate_float
 
 
 class Jackknife(object):
@@ -18,7 +16,7 @@ class Jackknife(object):
     n_sample: int
 
     # Observed value of the statistic
-    observed: object
+    observed = None
 
     def __init__(self, *data, stat, **kwargs):
         """Initialize a Jackknife object by computing each leave-one-out
@@ -44,7 +42,7 @@ class Jackknife(object):
         """
         data = validate_samples(*data, equal_lengths=True, ret_list=True)
         n_sample = len(data[0])
-        stat = validate_func(stat)
+        stat = validate_func(stat, **kwargs)
 
         # We do not pre-allocate an array for the jackknife distribution of the
         # statistic because we do not know the dimension of `stat`'s output
@@ -102,11 +100,7 @@ class Jackknife(object):
             Upper confidence interval endpoint.
         """
         # Validate significance level `alpha`
-        if not isinstance(alpha, numbers.Real):
-            raise TypeError("Parameter 'alpha' must be a float")
-        alpha = float(alpha)
-        if alpha < 0 or alpha > 1:
-            raise ValueError("Parameter 'alpha' must be in the range [0, 1]")
+        alpha = validate_float(alpha, "alpha", minimum=0.0, maximum=1.0)
 
         # Determine which distribution's quantile function to use
         if self.n_sample <= 30:

@@ -1,8 +1,8 @@
 """Defines the LASSO regression (L1 regularization) decorator."""
 
-import numbers
-
 import numpy as np
+
+from ..utils import validate_float
 
 
 def lasso(penalty, loss=None):
@@ -19,10 +19,10 @@ def lasso(penalty, loss=None):
     Returns
     -------
     If `loss` is not specified, a LASSO regression decorator with parameter
-    `lam` is returned. Otherwise, the penalized version of `loss` is returned.
+    `penalty` is returned. Otherwise, the penalized version of `loss` is
+    returned.
     """
-    if not isinstance(penalty, numbers.Real) or penalty <= 0:
-        raise TypeError("Parameter 'lam' must be a positive float")
+    penalty = validate_float(penalty, "penalty", positive=True)
 
     def _lasso(func):
         if not callable(func):

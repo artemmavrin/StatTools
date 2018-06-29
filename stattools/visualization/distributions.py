@@ -1,13 +1,11 @@
 """Implements plots for visualizing probability distributions."""
 
-import numbers
-
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as st
 
 from .plotting import abline, func_plot
-from ..utils import validate_samples
+from ..utils.validation import validate_samples, validate_float
 
 
 def _rug_plot(data, ax=None, **kwargs):
@@ -103,11 +101,7 @@ def ecdf_plot(data, cdf=None, rug=False, cb=False, alpha=0.05, ax=None,
 
     if cb:
         # Validate significance level `alpha`
-        if not isinstance(alpha, numbers.Real):
-            raise TypeError("Parameter 'alpha' must be a float")
-        alpha = float(alpha)
-        if alpha < 0 or alpha > 1:
-            raise ValueError("Parameter 'alpha' must be in the range [0, 1]")
+        alpha = validate_float(alpha, "alpha", minimum=0.0, maximum=1.0)
 
         # Compute upper and lower confidence bounds
         e = np.sqrt(np.log(2 / alpha) / (2 * len(data)))

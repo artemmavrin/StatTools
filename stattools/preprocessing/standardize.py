@@ -3,6 +3,7 @@
 import numpy as np
 
 from .base import InvertibleDataTransformer
+from ..utils import validate_bool
 
 
 class Standardizer(InvertibleDataTransformer):
@@ -37,10 +38,10 @@ class Standardizer(InvertibleDataTransformer):
             If False, standard deviation is computed with Bessel's correction:
                 std = sqrt((1 / (n - 1)) (x - mean) * (x - mean))
         """
-        self.center = center
-        self.scale = scale
-        self.reduce = reduce
-        self.bias = bias
+        self.center = validate_bool(center, "center")
+        self.scale = validate_bool(scale, "scale")
+        self.reduce = validate_bool(reduce, "reduce")
+        self.bias = validate_bool(bias, "bias")
 
     def fit(self, x):
         """Determine column means and standard deviations for transformation.

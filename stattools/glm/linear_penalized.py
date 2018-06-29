@@ -1,12 +1,13 @@
 """Linear models with regularization"""
 
-import numbers
 import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 from .linear import LinearModel
+from ..utils import validate_float
+from ..utils import validate_int
 
 
 class Ridge(LinearModel):
@@ -20,11 +21,9 @@ class Ridge(LinearModel):
         lam : float (>0)
             Regularization constant.
         """
-        # Validate `lam`
-        if not isinstance(lam, numbers.Real) or float(lam) <= 0:
-            raise ValueError("Parameter 'lam' must be a positive float.")
+        # Validate parameters
+        self.lam = validate_float(lam, "lam", positive=True)
 
-        self.lam = float(lam)
         super(Ridge, self).__init__(standardize=True)
 
     def fit(self, x, y, names=None):
@@ -117,12 +116,8 @@ def _enet_cd(x, y, coef0, lam, alpha, tol, max_iter, random, seed, callback):
         Statistical Software Vol. 33, No. 1, 2010, pp. 1--22. PMCID: PMC2929880
     """
     # Validate `tol` and `max_iter`
-    if not isinstance(tol, numbers.Real) or int(max_iter) <= 0:
-        raise ValueError("Parameter 'tol' must be a positive float.")
-    if not isinstance(max_iter, numbers.Integral) or int(max_iter) <= 0:
-        raise ValueError("Parameter 'max_iter' must be a positive integer.")
-    tol = float(tol)
-    max_iter = int(max_iter)
+    tol = validate_float(tol, "tol", positive=True)
+    max_iter = validate_int(max_iter, "max_iter", minimum=1)
 
     # Number of explanatory variables
     p = x.shape[1]
@@ -239,17 +234,10 @@ class ElasticNet(LinearModel):
             L2 penalty only. 0<alpha<1 means weighted sum of L1 and L2
             penalties.
         """
-        # Validate `lam`
-        if not isinstance(lam, numbers.Real) or float(lam) <= 0:
-            raise ValueError("Parameter 'lam' must be a positive float.")
+        # Validate parameters
+        self.lam = validate_float(lam, "lam", positive=True)
+        self.alpha = validate_float(alpha, "alpha", minimum=0.0, maximum=1.0)
 
-        # Validate 'alpha'
-        if (not isinstance(alpha, numbers.Real) or float(alpha) < 0 or
-                float(alpha) > 1):
-            raise ValueError("Parameter 'alpha' must be a float in [0, 1].")
-
-        self.lam = float(lam)
-        self.alpha = float(alpha)
         super(ElasticNet, self).__init__(standardize=True, fit_intercept=True)
 
     def fit(self, x, y, names=None, tol=1e-4, max_iter=1000, random=False,

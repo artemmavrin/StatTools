@@ -6,6 +6,117 @@ import numbers
 import numpy as np
 
 
+def validate_bool(x, name) -> bool:
+    """Validate boolean function parameters.
+
+    Parameters
+    ----------
+    x : object
+        Object to validate as a bool.
+    name : dtr
+        Name of the function parameter.
+
+    Returns
+    -------
+    bool(x) if x is a bool.
+
+    Raises
+    ------
+    TypeError if x is not a bool.
+    """
+    if isinstance(x, bool):
+        return bool(x)
+    else:
+        raise TypeError(f"Parameter '{name}' must be boolean.")
+
+
+def validate_int(x, name, minimum=None, maximum=None) -> int:
+    """Validate integer function parameters.
+
+    Parameters
+    ----------
+    x : object
+        Object to validate as an int.
+    name : str
+        Name of the function parameter.
+    minimum : int, optional
+        Minimum value x can take (inclusive).
+    maximum : int, optional
+        Maximum value x can take (inclusive).
+
+    Returns
+    -------
+    int(x) if x is an int satisfying the additional constraints.
+
+    Raises
+    ------
+    TypeError if x cannot be coerced into an int.
+    ValueError if x < minimum or x > maximum.
+    """
+    if isinstance(x, numbers.Integral):
+        x = int(x)
+        if minimum is not None:
+            minimum = validate_int(minimum, "minimum")
+            if x < minimum:
+                raise ValueError(
+                    f"Parameter '{name}' must be at least {minimum}")
+        if maximum is not None:
+            maximum = validate_int(maximum, "maximum")
+            if x > maximum:
+                raise ValueError(
+                    f"Parameter '{name}' must be at most {maximum}")
+
+    else:
+        raise TypeError(f"Parameter '{name}' must be an int.")
+    return x
+
+
+def validate_float(x, name, positive=False, minimum=None,
+                   maximum=None) -> float:
+    """Validate float function parameters.
+
+    Parameters
+    ----------
+    x : object
+        Object to validate as a float.
+    name : str
+        Name of the function parameter.
+    positive : bool
+        If True, x must be positive. If False, x can be any float.
+    minimum : int, optional
+        Minimum value x can take (inclusive).
+    maximum : int, optional
+        Maximum value x can take (inclusive).
+
+    Returns
+    -------
+    float(x) if x is a float satisfying the additional constraints.
+
+    Raises
+    ------
+    TypeError if x cannot be coerced into a float.
+    ValueError if x < minimum or x > maximum or positive is True but x <= 0.
+    """
+    if isinstance(x, numbers.Real):
+        x = float(x)
+        positive = validate_bool(positive, "positive")
+        if positive and x <= 0.0:
+            raise ValueError(f"Parameter '{name}' must be positive.")
+        if minimum is not None:
+            minimum = validate_float(minimum, "minimum")
+            if x < minimum:
+                raise ValueError(
+                    f"Parameter '{name}' must be at least {minimum}")
+        if maximum is not None:
+            maximum = validate_float(maximum, "maximum")
+            if x > maximum:
+                raise ValueError(
+                    f"Parameter '{name}' must be at most {maximum}")
+    else:
+        raise TypeError(f"Parameter '{name}' must be a float.")
+    return x
+
+
 def validate_samples(*samples, n_dim=None, equal_lengths=False,
                      equal_shapes=False, ret_list=False):
     """Preprocess and validate multiple data samples.

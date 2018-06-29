@@ -7,6 +7,7 @@ import numpy as np
 
 from .fit import Fittable
 from ..utils import validate_samples
+from ..utils import validate_int
 
 
 class Predictor(Fittable, metaclass=abc.ABCMeta):
@@ -47,9 +48,7 @@ class Classifier(Predictor, metaclass=abc.ABCMeta):
         """
         # Validate `max_classes`
         if max_classes is not None:
-            if not isinstance(max_classes, numbers.Integral) \
-                    or int(max_classes) <= 1:
-                raise ValueError("Parameter 'max_classes' must be an int >= 2.")
+            max_classes = validate_int(max_classes, "max_classes", minimum=2)
 
         # Extract unique classes, convert response vector to indices.
         self.classes, indices = np.unique(y, return_inverse=True)

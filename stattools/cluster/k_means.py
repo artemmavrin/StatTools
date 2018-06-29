@@ -12,12 +12,14 @@ Christopher Bishop. Pattern Recognition and Machine Learning. Springer 2006.
 """
 
 import itertools
-import numbers
 
 import numpy as np
 
 from ..generic import Predictor
-from ..utils import validate_samples
+from ..utils.validation import validate_bool
+from ..utils.validation import validate_float
+from ..utils.validation import validate_int
+from ..utils.validation import validate_samples
 
 
 class KMeansCluster(Predictor):
@@ -53,14 +55,9 @@ class KMeansCluster(Predictor):
         standardize : bool
             Indicate whether the input data should be standardized.
         """
-        if isinstance(k, numbers.Integral) and int(k) > 1:
-            self.k = int(k)
-        else:
-            raise ValueError("Parameter 'k' must be an integer greater than 1.")
-        if isinstance(standardize, bool):
-            self.standardize = standardize
-        else:
-            raise ValueError("Parameter 'standardize' must be boolean.")
+        # Validate parameters
+        self.k = validate_int(k, "k", minimum=2)
+        self.standardize = validate_bool(standardize, "standardize")
 
     @property
     def centers(self):
@@ -100,23 +97,8 @@ class KMeansCluster(Predictor):
         This KMeansCluster instance.
         """
         # Validate parameters
-        x = validate_samples(x, n_dim=2)
-        if len(x) <= self.k:
-            print("There must be more observations than number of clusters.")
-        if isinstance(tol, numbers.Real) and float(tol) > 0:
-            tol = float(tol)
-        else:
-            raise ValueError("Parameter 'tol' must be a positive float.")
-        if iterations is None:
-            pass
-        elif isinstance(iterations, numbers.Integral) and int(iterations) > 0:
-            iterations = int(iterations)
-        else:
-            raise ValueError("Parameter 'iterations' must be a positive int.")
-        if isinstance(repeats, numbers.Integral) and int(repeats) > 0:
-            repeats = int(repeats)
-        else:
-            raise ValueError("Parameter 'repeats' must be a positive integer.")
+        x, tol, iterations, repeats = _validate_fit_params(x, self.k, tol,
+                                                           iterations, repeats)
 
         # Seed the RNG
         if not isinstance(random_state, np.random.RandomState):
@@ -257,3 +239,28 @@ def _assign_clusters(x: np.ndarray, centers: np.ndarray):
     for i, obs in enumerate(x):
         clusters[i] = np.argmin(np.linalg.norm(obs - centers, axis=1))
     return clusters
+
+
+def _validate_fit_params(x, k, tol, iterations, repeats, ):
+    """Validate the parameters for KMeansCluster.fit().
+
+    Parameters
+    ----------
+    See the parameter descriptions for GaussianMixture.fit().
+
+    Returns
+    -------
+    The updated parameters.
+    """
+    x = validate_samples(x, n_dim=2)
+    if len(x) <= k:
+        print("There must be more observations than number of clusters.")
+
+    tol = validate_float(tol, "tol", positive=True)
+
+    if iterations is not None:
+        iterations = validate_int(iterations, "iterations", minimum=1)
+
+    repeats = validate_int(repeats, "repeats", minimum=1)
+
+    return x, tol, iterations, repeats

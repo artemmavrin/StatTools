@@ -1,13 +1,12 @@
 """Fit a polynomial curve through a scatterplot."""
 
 import itertools
-import numbers
 
 import numpy as np
 
 from .smoothing import ScatterplotSmoother
 from ..glm.linear import LinearRegression
-from ..utils.validation import validate_samples
+from ..utils.validation import validate_samples, validate_int
 
 
 class PolynomialSmoother(LinearRegression, ScatterplotSmoother):
@@ -27,11 +26,7 @@ class PolynomialSmoother(LinearRegression, ScatterplotSmoother):
             Indicates whether the explanatory and response variables should be
             centered to have mean 0 and scaled to have variance 1.
         """
-        # Validate the degree
-        if not isinstance(deg, numbers.Integral) or deg < 1:
-            raise ValueError("'deg' must be a positive integer.")
-        self.deg = int(deg)
-
+        self.deg = validate_int(deg, "deg", minimum=1)
         super(PolynomialSmoother, self).__init__(standardize=standardize,
                                                  fit_intercept=True)
 

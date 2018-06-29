@@ -1,10 +1,9 @@
 """Defines the PCA (principal component analysis) class."""
 
-import numbers
-
 import numpy as np
 
 from .base import InvertibleDataTransformer
+from ..utils import validate_int
 
 
 class PCA(InvertibleDataTransformer):
@@ -66,9 +65,8 @@ class PCA(InvertibleDataTransformer):
         # Project onto principal component axes
         if dim is None:
             return np.dot(x, self._evecs)
-        elif not isinstance(dim, numbers.Integral) or dim <= 0:
-            raise ValueError("Parameter 'dim' must be a positive integer")
         else:
+            dim = validate_int(dim, "dim", minimum=1)
             if self._n_features < dim:
                 raise ValueError(f"Parameter 'dim' is too large; "
                                  f"expected at most {self._n_features}")

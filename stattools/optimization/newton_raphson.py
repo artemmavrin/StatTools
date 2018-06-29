@@ -1,10 +1,9 @@
 """Defines the NewtonRaphson class."""
 
-import numbers
-
 import numpy as np
 
 from .base import Optimizer
+from ..utils import validate_int
 
 
 class NewtonRaphson(Optimizer):
@@ -18,10 +17,7 @@ class NewtonRaphson(Optimizer):
         iterations: int, optional
             Number of iterations of the algorithm to perform.
         """
-        if not isinstance(iterations, numbers.Integral) or iterations <= 0:
-            raise TypeError("Parameter 'iterations' must be a positive int")
-
-        self.iterations = iterations
+        self.iterations = validate_int(iterations, "iterations", minimum=1)
 
     def optimize(self, x0, func, grad=None, hess=None, args=None, kwargs=None,
                  callback=None):

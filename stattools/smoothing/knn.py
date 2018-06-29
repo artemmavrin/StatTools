@@ -1,11 +1,9 @@
 """k nearest neighbors smoothers."""
 
-import numbers
-
 import numpy as np
 
 from .smoothing import ScatterplotSmoother
-from ..utils.validation import validate_samples
+from ..utils.validation import validate_samples, validate_int
 
 
 class KNNSmoother(ScatterplotSmoother):
@@ -25,9 +23,7 @@ class KNNSmoother(ScatterplotSmoother):
         k : int
             Number of neighbors.
         """
-        if not isinstance(k, numbers.Integral) or k <= 0:
-            raise ValueError("Parameter 'k' must be a positive integer.")
-        self.k = int(k)
+        self.k = validate_int(k, "k", minimum=1)
 
     def fit(self, x, y):
         """Store the training data.

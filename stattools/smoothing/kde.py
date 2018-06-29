@@ -1,13 +1,11 @@
 """Defines a class for non-parametric density function estimation."""
 
-import numbers
-
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as st
 
 from ..generic import Fittable
-from ..utils import validate_samples
+from ..utils import validate_samples, validate_int, validate_float
 
 
 class KernelDensityEstimator(Fittable):
@@ -68,10 +66,9 @@ class KernelDensityEstimator(Fittable):
             n = len(self.data)
             scale = self.data.std(ddof=1)
             self.bandwidth = 1.06 * scale * (n ** (-1 / 5))
-        elif isinstance(bandwidth, numbers.Real) and float(bandwidth) > 0:
-            self.bandwidth = float(bandwidth)
         else:
-            raise TypeError("Parameter 'bandwidth' must be a positive float.")
+            self.bandwidth = validate_float(bandwidth, "bandwidth",
+                                            positive=True)
 
         h = self.bandwidth
 
@@ -116,22 +113,15 @@ class KernelDensityEstimator(Fittable):
         # Validate all parameters
         if x_min is None:
             x_min = min(self.data)
-        elif isinstance(x_min, numbers.Real):
-            x_min = float(x_min)
         else:
-            raise ValueError("Parameter 'x_min' must be a float.")
+            x_min = validate_float(x_min, "x_min")
 
         if x_max is None:
             x_max = max(self.data)
-        elif isinstance(x_max, numbers.Real):
-            x_max = float(x_max)
         else:
-            raise ValueError("Parameter 'x_max' must be a float.")
+            x_max = validate_float(x_max, "x_max")
 
-        if isinstance(num, numbers.Integral) and int(num) > 0:
-            num = int(num)
-        else:
-            raise TypeError("Parameter 'num' must be a positive int.")
+        num = validate_int(num, "num", minimum=1)
 
         if ax is None:
             ax = plt.gca()

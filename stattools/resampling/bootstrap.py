@@ -9,12 +9,13 @@ Donald B. Rubin. "The Bayesian bootstrap". The Annals of Statistics, Volume 9,
     Number 1 (1981), 130--134. doi:10.1214/aos/1176345338
 """
 
-import numbers
-
 import numpy as np
 import scipy.stats as st
 
-from ..utils.validation import validate_samples, validate_func
+from ..utils.validation import validate_float
+from ..utils.validation import validate_func
+from ..utils.validation import validate_int
+from ..utils.validation import validate_samples
 
 
 # Non-parametric bootstrap
@@ -50,9 +51,7 @@ def bootstrap(*samples, n_boot, random_state=None, ret_list=False):
     n_obs = len(samples[0])
 
     # Ensure `n_boot` is a positive integer
-    if not isinstance(n_boot, numbers.Integral) or int(n_boot) <= 0:
-        raise TypeError("Parameter 'n_boot' must be a positive integer.")
-    n_boot = int(n_boot)
+    n_boot = validate_int(n_boot, "n_boot", minimum=1)
 
     # Initialize the random number generator if necessary
     if not isinstance(random_state, np.random.RandomState):
@@ -90,10 +89,10 @@ class Bootstrap(object):
     observed : object
         Observed value of the statistic.
     """
-    n_boot: int
-    samples_boot: list
-    dist: np.ndarray
-    observed: object
+    n_boot: int = None
+    samples_boot: list = None
+    dist: np.ndarray = None
+    observed = None
 
     def __init__(self, *samples, stat, n_boot, random_state=None, **kwargs):
         """Generate bootstrap estimates by sampling with replacement from a
@@ -166,9 +165,7 @@ class Bootstrap(object):
         upper : float or numpy.ndarray
             Upper endpoint of the confidence interval.
         """
-        if not isinstance(alpha, numbers.Real) or not (0 < float(alpha) < 1):
-            raise ValueError(f"Invalid parameter 'alpha': {alpha}")
-        alpha = float(alpha)
+        alpha = validate_float(alpha, "alpha", minimum=0.0, maximum=1.0)
 
         if kind == "normal":
             z = st.norm(0, 1).ppf(alpha / 2)
@@ -214,9 +211,7 @@ def bayesian_bootstrap(*samples, n_boot, random_state=None):
     n_obs = len(samples[0])
 
     # Ensure `n_boot` is a positive integer
-    if not isinstance(n_boot, numbers.Integral) or int(n_boot) <= 0:
-        raise TypeError("Parameter 'n_boot' must be a positive integer.")
-    n_boot = int(n_boot)
+    n_boot = validate_int(n_boot, "n_boot", minimum=1)
 
     # Initialize the random number generator if necessary
     if not isinstance(random_state, np.random.RandomState):

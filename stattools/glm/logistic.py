@@ -1,13 +1,13 @@
 """Defines the LogisticRegression class."""
 
-import numbers
-
 import numpy as np
 
 from .glm import GLM
 from ..generic import Classifier
 from ..optimization import Optimizer
 from ..regularization import lasso, ridge
+from ..utils import validate_bool
+from ..utils import validate_float
 
 
 def sigmoid(x):
@@ -88,15 +88,9 @@ class LogisticRegression(GLM, Classifier):
             Indicates whether the model should fit an intercept term.
         """
         self.reg = reg
-        self.standardize = standardize
-        self.fit_intercept = fit_intercept
-
-        # Validate `lam`
-        if reg is not None:
-            if not isinstance(penalty, numbers.Real) or penalty <= 0:
-                raise ValueError("Parameter 'lam' must be a positive float.")
-            else:
-                self.penalty = float(penalty)
+        self.standardize = validate_bool(standardize, "standardize")
+        self.fit_intercept = validate_bool(fit_intercept, "fit_intercept")
+        self.penalty = validate_float(penalty, "penalty", positive=True)
 
     def fit(self, x, y, optimizer, names=None, *args, **kwargs):
         """Fit the logistic regression model.

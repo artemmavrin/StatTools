@@ -1,12 +1,10 @@
 """Kernel smoothing."""
 
-import numbers
-
 import numpy as np
 import scipy.stats as st
 
 from .smoothing import ScatterplotSmoother
-from ..utils.validation import validate_samples
+from ..utils.validation import validate_samples, validate_float
 
 # Standard Gaussian density kernel
 kernel_gauss = st.norm(loc=0, scale=1).pdf
@@ -56,9 +54,7 @@ class KernelSmoother(ScatterplotSmoother):
         else:
             raise ValueError(f"Unsupported kernel type: {kernel}.")
 
-        if not isinstance(bandwidth, numbers.Real) or float(bandwidth) <= 0:
-            raise ValueError("Parameter 'lam' must be a positive float.")
-        self.bandwidth = float(bandwidth)
+        self.bandwidth = validate_float(bandwidth, "bandwidth", positive=True)
 
     def fit(self, x, y):
         """Store the training data.
