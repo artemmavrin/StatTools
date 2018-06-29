@@ -5,6 +5,7 @@ import stattools.datasets
 import stattools.ensemble
 import stattools.generic
 import stattools.glm
+import stattools.mixture
 import stattools.optimization
 import stattools.preprocessing
 import stattools.regularization
