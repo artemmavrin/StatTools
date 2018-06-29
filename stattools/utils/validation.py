@@ -117,6 +117,44 @@ def validate_float(x, name, positive=False, minimum=None,
     return x
 
 
+def validate_sample(sample, n_dim=None) -> np.ndarray:
+    """Preprocess and validate a single data sample.
+
+    Parameters
+    ----------
+    sample : array-like
+        Data samples to preprocess and validate.
+    n_dim : 1 or 2 or None, optional
+        Maximum number of dimensions for the sample (either 1, 2, or None). If
+        not None, then the sample is coerced to have the maximum number of
+        dimensions.
+
+    Returns
+    -------
+    sample : numpy.ndarray
+        If multiple samples are provided or `ret_list` is True, a list
+        containing the preprocessed and validated samples is returned.
+        Otherwise, the single modified sample is returned.
+    """
+    if n_dim is None:
+        return np.asarray(sample)
+    else:
+        n_dim = validate_int(n_dim, "n_dim", minimum=1, maximum=2)
+        if n_dim == 1:
+            if np.ndim(sample) <= 1:
+                return np.atleast_1d(sample)
+            else:
+                raise ValueError("Parameter 'sample' must have 1 dimension.")
+        else:
+            # n_dim == 2
+            if np.ndim(sample) <= 1:
+                return np.atleast_2d(sample).T
+            elif np.ndim(sample) == 2:
+                return np.asarray(sample)
+            else:
+                raise ValueError("Parameter 'sample' must have 2 dimensions.")
+
+
 def validate_samples(*samples, n_dim=None, equal_lengths=False,
                      equal_shapes=False, ret_list=False):
     """Preprocess and validate multiple data samples.
