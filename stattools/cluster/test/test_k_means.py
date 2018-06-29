@@ -28,8 +28,8 @@ class TestKMeansCluster(unittest.TestCase):
                 xs.append(rs.uniform(low=low, high=high, size=(n, p)))
             x = np.row_stack(xs)
 
-            model = KMeansCluster(k=k)
-            model.fit(x, random_state=rs)
+            model = KMeansCluster(k=k, random_state=rs)
+            model.fit(x)
             clusters = model.predict(x)
 
             for i in range(k):

@@ -19,7 +19,7 @@ from ..generic import Predictor
 from ..utils.validation import validate_bool
 from ..utils.validation import validate_float
 from ..utils.validation import validate_int
-from ..utils.validation import validate_samples
+from ..utils.validation import validate_sample
 
 
 class KMeansCluster(Predictor):
@@ -34,9 +34,12 @@ class KMeansCluster(Predictor):
         The centers of each cluster.
     standardize : bool
         Indicate whether the input data should be standardized.
+    random_state : numpy.random.RandomState
+        The random number generator.
     """
     k: int = None
     standardize: bool = None
+    random_state: np.random.RandomState
 
     # Cluster centers in terms of possibly standardized units
     _centers: np.ndarray = None
@@ -45,7 +48,7 @@ class KMeansCluster(Predictor):
     _x_mean: np.ndarray = None
     _x_std: np.ndarray = None
 
-    def __init__(self, k, standardize=True):
+    def __init__(self, k, standardize=True, random_state=None):
         """Initialize a ClusterKMeans object.
 
         Parameters
@@ -59,6 +62,12 @@ class KMeansCluster(Predictor):
         self.k = validate_int(k, "k", minimum=2)
         self.standardize = validate_bool(standardize, "standardize")
 
+        # Seed the RNG
+        if isinstance(random_state, np.random.RandomState):
+            self.random_state = random_state
+        else:
+            self.random_state = np.random.RandomState(random_state)
+
     @property
     def centers(self):
         """Get the centers of each cluster."""
@@ -71,7 +80,7 @@ class KMeansCluster(Predictor):
         else:
             return self._centers
 
-    def fit(self, x, tol=1e-5, iterations=None, repeats=5, random_state=None):
+    def fit(self, x, tol=1e-5, iterations=None, repeats=5):
         """Fit the K-means cluster model to data.
 
         Parameters
@@ -89,20 +98,14 @@ class KMeansCluster(Predictor):
             Number of times to repeat the algorithm with different initial
             center assignments. This can decrease the chance of finding only
             non-global minima of the loss function
-        random_state : int or numpy.random.RandomState object, optional
-            A valid initializer for a numpy.random.RandomState object.
 
         Returns
         -------
         This KMeansCluster instance.
         """
         # Validate parameters
-        x, tol, iterations, repeats = _validate_fit_params(x, self.k, tol,
-                                                           iterations, repeats)
-
-        # Seed the RNG
-        if not isinstance(random_state, np.random.RandomState):
-            random_state = np.random.RandomState(random_state)
+        x, tol, iterations, repeats = \
+            _validate_fit_params(x, self.k, tol, iterations, repeats)
 
         # n = number of observations, p = number of features
         n, p = x.shape
@@ -126,7 +129,7 @@ class KMeansCluster(Predictor):
         for i in range(repeats):
             # Initialize random starting cluster centers by choosing k
             # observations without replacement from the feature matrix
-            ind = random_state.choice(n, size=self.k, replace=False)
+            ind = self.random_state.choice(n, size=self.k, replace=False)
             centers_ = x.take(ind, axis=0)
 
             if iterations is None:
@@ -151,6 +154,10 @@ class KMeansCluster(Predictor):
                 # Check for convergence
                 if np.linalg.norm(centers_ - centers_old) < tol:
                     break
+
+            # Sort the final centers in lexicographic order
+            ind = np.lexsort([centers_[:, p - i - 1] for i in range(p)])
+            centers_ = centers_[ind]
 
             # Save the resulting centers and compute final cluster assignments
             centers[i] = centers_
@@ -184,7 +191,7 @@ class KMeansCluster(Predictor):
             raise self.unfitted_exception
 
         # Validate the feature matrix
-        x = validate_samples(x, n_dim=2)
+        x = validate_sample(x, n_dim=2)
 
         # Standardize data if necessary
         if self.standardize:
@@ -194,7 +201,7 @@ class KMeansCluster(Predictor):
         return _assign_clusters(x, self._centers)
 
 
-def _k_means_loss(x: np.ndarray, clusters, centers):
+def _k_means_loss(x: np.ndarray, clusters: np.ndarray, centers: np.ndarray):
     """Compute the within-cluster-sum-of-squares loss function.
 
     Parameters
@@ -219,7 +226,7 @@ def _k_means_loss(x: np.ndarray, clusters, centers):
     return loss
 
 
-def _assign_clusters(x: np.ndarray, centers: np.ndarray):
+def _assign_clusters(x: np.ndarray, centers: np.ndarray) -> np.ndarray:
     """Given cluster centers, assign data points to clusters.
 
     Parameters
@@ -241,7 +248,7 @@ def _assign_clusters(x: np.ndarray, centers: np.ndarray):
     return clusters
 
 
-def _validate_fit_params(x, k, tol, iterations, repeats, ):
+def _validate_fit_params(x, k, tol, iterations, repeats):
     """Validate the parameters for KMeansCluster.fit().
 
     Parameters
@@ -252,7 +259,7 @@ def _validate_fit_params(x, k, tol, iterations, repeats, ):
     -------
     The updated parameters.
     """
-    x = validate_samples(x, n_dim=2)
+    x = validate_sample(x, n_dim=2)
     if len(x) <= k:
         print("There must be more observations than number of clusters.")
 
