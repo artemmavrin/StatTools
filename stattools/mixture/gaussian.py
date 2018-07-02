@@ -1,12 +1,4 @@
-"""Estimation for Gaussian mixture models using the EM algorithm.
-
-See Section 9.2 in Bishop (2006).
-
-References
-----------
-Christopher Bishop. Pattern Recognition and Machine Learning. Springer-Verlag
-    New York (2006), pp. xx+738.
-"""
+"""Estimation and simulation for Gaussian mixture models."""
 
 import itertools
 import numbers
@@ -48,6 +40,9 @@ class GaussianMixtureDensity(object):
     covs: np.ndarray
     weights: np.ndarray
 
+    # The Gaussian components as a list of frozen scipy.stats distributions
+    _components: list = None
+
     def __init__(self, means, covs=None, weights=None, random_state=None):
         """Initialize a GaussianMixtureGenerator.
 
@@ -61,17 +56,23 @@ class GaussianMixtureDensity(object):
             If a vector of shape (k,), each entry is the mean of a
             one-dimensional component.
         covs : scalar or array-like, optional
-            If not specified, the covariance matrix of each Gaussian component
-            is taken to be the identity matrix.
-            If a scalar (v), the covariance matrix of each Gaussian component
-            is taken to be v times the identity matrix.
-            If an array of shape (k,) or (k, 1), then the covariance matrix of
-            each Gaussian component is taken to be the corresponding element of
-            `covs` times the identity matrix.
-            If an array of shape (p, p), then `covs` is interpreted as the
-            covariance matrix of each component.
-            If an array of shape (k, p, p), then `covs` is interpreted as the
-            list of the covariance matrices of all the components.
+            The covariance matrices for the Gaussian components. This parameter
+            is interpreted in the following order:
+
+            *   If None, the covariance matrix of each Gaussian component is
+                taken to be the identity matrix.
+            *   If a scalar, the covariance matrix of each Gaussian component is
+                taken to be that scalar times the identity matrix.
+            *   If an array of shape (k,), then the covariance matrix of each
+                Gaussian component is taken to be the corresponding element of
+                `covs` times the identity matrix.
+            *   If an array of shape (p,), then this is taken to be the diagonal
+                of the covariance matrix of each component. Off-diagonal entries
+                are taken to be zero.
+            *   If an array of shape (p, p), then `covs` is interpreted as the
+                covariance matrix of each component.
+            *   If an array of shape (k, p, p), then `covs` is interpreted as
+                the list of the covariance matrices of all the components.
         weights : array-like, optional
             If not specified, each compoenent is weighted equally.
             Otherwise, these weights will be rescaled to sum to 1 and will
@@ -90,7 +91,7 @@ class GaussianMixtureDensity(object):
             # Bad: the means array has to be a matrix
             raise ValueError("Parameter 'means' can have at most 2 dimensions.")
         elif self.means.ndim <= 1:
-            # Convert a (k,) vector to a (k, 1) matrix
+            # Convert a scalar (k=1) or a (k,) vector to a (k, 1) matrix
             self.means = self.means.reshape(-1, 1)
 
         # Extract number of components and dimensions
@@ -107,11 +108,15 @@ class GaussianMixtureDensity(object):
             v = float(covs)
             self.covs = v * np.asarray([np.eye(self.p) for _ in range(self.k)],
                                        dtype=np.float_)
-        elif np.shape(covs) in ((self.k,), (self.k, 1)):
+        elif np.shape(covs) == (self.k,):
             # Each covariance matrix is a (potentially different) scalar times
             # the identity matrix.
             self.covs = np.asarray(
                 [v * np.eye(self.p) for v in np.asarray(covs)], dtype=np.float_)
+        elif np.shape(covs) == (self.p,):
+            # Each component has the same diagonal covariance matrix.
+            self.covs = np.asarray([np.diag(covs) for _ in range(self.k)],
+                                   dtype=np.float_)
         elif np.shape(covs) == (self.p, self.p):
             # Each Gaussian component has the same covariance matrix
             self.covs = np.asarray([np.asarray(covs) for _ in range(self.k)],
@@ -145,7 +150,12 @@ class GaussianMixtureDensity(object):
         else:
             self.random_state = np.random.RandomState(random_state)
 
-    def __call__(self, x) -> np.ndarray:
+        # Create the Gaussian component distributions
+        self._components = \
+            [st.multivariate_normal(mean=mean, cov=cov, seed=self.random_state)
+             for mean, cov in zip(self.means, self.covs)]
+
+    def __call__(self, x):
         """Compute the Gaussian mixture model's density function.
 
         Parameters
@@ -160,9 +170,8 @@ class GaussianMixtureDensity(object):
             The i-th entry is the Gaussian mixture model density applied to the
             i-th row of x.
         """
-        x = _validate_x(x, self.p)
-        d = _densities(x, self.k, self.means, self.covs).dot(self.weights)
-        return d.reshape(-1)
+        x = _validate_x(x=x, p=self.p)
+        return self.weights.dot([gauss.pdf(x) for gauss in self._components])
 
     def plot(self, num=200, fill=True, ax=None, **kwargs):
         """Plot the Gaussian mixture density in the 1D and 2D cases.
@@ -204,8 +213,8 @@ class GaussianMixtureDensity(object):
             x = np.linspace(x_min, x_max, num)
             y = np.linspace(y_min, y_max, num)
             xx, yy = np.meshgrid(x, y)
-            data = np.column_stack((xx.ravel(), yy.ravel()))
-            density = self(data).reshape(-1, num)
+            xy = np.column_stack((xx.ravel(), yy.ravel()))
+            density = self(xy).reshape(-1, num)
             if fill:
                 ax.contourf(xx, yy, density, **kwargs)
             else:
@@ -246,16 +255,14 @@ class GaussianMixtureDensity(object):
             x = np.empty(shape=(n,), dtype=np.float_)
         else:
             x = np.empty(shape=(n, self.p), dtype=np.float)
-        comp = np.empty(shape=(n,), dtype=np.int_)
 
-        for i in range(n):
-            # Choose which component to draw from
-            j = self.random_state.choice(self.k, p=self.weights)
+        # Choose which components to sample from
+        comp = self.random_state.choice(self.k, size=(n,), p=self.weights)
 
-            # Sample from that component
-            x[i] = self.random_state.multivariate_normal(mean=self.means[j],
-                                                         cov=self.covs[j])
-            comp[i] = j
+        for j in range(self.k):
+            # Sample from the j-th component
+            ind = (comp == j)
+            x[ind] = self._components[j].rvs(size=np.sum(ind))
 
         if return_component:
             return x, comp
@@ -267,7 +274,10 @@ class GaussianMixture(Classifier):
     """Estimate the parameters of a Gaussian mixture model (GMM).
 
     Parameters are estimated by numerical MLE (maximum likelihood estimation)
-    using the EM algorithm (Dempster, Laird, & Rubin 1977).
+    using the EM (expectation maximization) algorithm (cf. Dempster, Laird, &
+    Rubin (1977)).
+
+    See also Section 9.2 in Bishop (2006).
 
     Properties
     ----------
@@ -296,12 +306,12 @@ class GaussianMixture(Classifier):
     Christopher Bishop. Pattern Recognition and Machine Learning.
         Springer-Verlag New York (2006), pp. xx+738.
     """
-    k: int
-    p: int
-    means: np.ndarray
-    covs: np.ndarray
-    weights: np.ndarray
-    random_state: np.random.RandomState
+    k: int = None
+    p: int = None
+    means: np.ndarray = None
+    covs: np.ndarray = None
+    weights: np.ndarray = None
+    random_state: np.random.RandomState = None
 
     def __init__(self, k, random_state=None):
         """Initialize a GMM by specifying the number of Gaussian components.
@@ -324,11 +334,8 @@ class GaussianMixture(Classifier):
         else:
             self.random_state = np.random.RandomState(random_state)
 
-        # The classes are Gaussian components 0, ..., k-1
-        self.classes = np.arange(self.k)
-
-    def fit(self, x, tol=1e-5, iterations=None, repeats=5, init_iterations=10,
-            init_repeats=30, cluster_kwargs=None):
+    def fit(self, x, repeats=5, tol=1e-6, iterations=None, init_repeats=30,
+            init_iter=10, cluster_kwargs=None):
         """Fit the Gaussian mixture model (i.e., estimate the parameters).
 
         Fitting is done using (potentially several runs of) the EM algorithm to
@@ -353,6 +360,10 @@ class GaussianMixture(Classifier):
         x : array-like
             Sample matrix of shape (n, p) (n=number of observations, p=number of
             features).
+        repeats : int, optional
+            Number of times to repeat the algorithm with different initial
+            parameter values. This can decrease the chance of finding only
+            non-global maxima of the log-likelihood function.
         tol : float, optional
             Positive tolerance for algorithm convergence. If an iteration of the
             EM algorithm increases the log-likelihood by less than `tol`, then
@@ -361,15 +372,11 @@ class GaussianMixture(Classifier):
             Maximum number of iterations to perform. If None, no maximum number
             is imposed and the algorithm will continue running until the
             stopping criterion determined by `tol` is satisfied.
-        repeats : int, optional
-            Number of times to repeat the algorithm with different initial
-            parameter values. This can decrease the chance of finding only
-            non-global maxima of the log-likelihood function.
-        init_iterations : int, optional
-            Number of iterations of the EM algorithm when initializing the
-            parameter values using random cluster assignments (described above).
         init_repeats : int, optional
             Number of times to repeat the EM algorithm when initializing the
+            parameter values using random cluster assignments (described above).
+        init_iter : int, optional
+            Number of iterations of the EM algorithm when initializing the
             parameter values using random cluster assignments (described above).
         cluster_kwargs : dict, optional
             Dictionary of keyword arguments to pass to KMeansCluster.fit(). To
@@ -388,59 +395,20 @@ class GaussianMixture(Classifier):
             pp. 282--293. DOI: https://doi.org/10.3758/s13428-015-0697-6
         """
         # Validate parameters
-        x, tol, iterations, repeats, init_iterations, init_repeats \
-            = _validate_fit_params(x, self.k, tol, iterations, repeats,
-                                   init_iterations, init_repeats)
+        x, repeats, tol, iterations, init_repeats, init_iter, cluster_kwargs = \
+            _gmm_validate_fit_params(x, repeats, tol, iterations, init_repeats,
+                                     init_iter, cluster_kwargs)
 
-        # n = number of observations, p = number of features
-        n, self.p = x.shape
+        # Get number of features
+        self.p = x.shape[1]
 
-        # Initialize arrays for the model parameters
-        self.means = np.empty(shape=(self.k, self.p), dtype=np.float_)
-        self.covs = np.empty(shape=(self.k, self.p, self.p), dtype=np.float_)
-        self.weights = np.empty(shape=(self.k,), dtype=np.float_)
+        # Fit the model
+        self.means, self.covs, self.weights = \
+            _gmm_fit(x, self.k, self.random_state, repeats, tol, iterations,
+                     init_repeats, init_iter, cluster_kwargs)
 
-        # Repeat the EM algorithm with different initial parameter values. At
-        # the end, the parameter estimates yielding the highest log-likelihood
-        # will be selected.
-        log_likelihood = -np.Inf
-        for r in range(repeats):
-            # Initialize the parameters of the model
-            if r == 0:
-                # First iteration: use k-means clustering
-                if cluster_kwargs is None:
-                    cluster_kwargs = dict()
-                elif not isinstance(cluster_kwargs, dict):
-                    raise TypeError(
-                        "Parameter 'cluster_kwargs' must be a dict.")
-                params = _init_param_cluster(x, k=self.k,
-                                             random_state=self.random_state,
-                                             **cluster_kwargs)
-            else:
-                # Subsequent iterations: use random cluster assignments
-                params = _init_param_random(x, k=self.k,
-                                            random_state=self.random_state,
-                                            repeats=init_repeats, tol=tol,
-                                            iterations=init_iterations)
-
-            # Fit the model
-            *params, ll_new = _fit_gmm(x, self.k, *params, tol=tol,
-                                       iterations=iterations)
-
-            # Compare the new log-likelihood with the best log-likelihood so far
-            # and update the parameters if necessary
-            if ll_new > log_likelihood:
-                log_likelihood = ll_new
-                self.means = params[0]
-                self.covs = params[1]
-                self.weights = params[2]
-
-        # Arrange the components so that the means are in increasing
-        # lexicographic order
-        ind = np.lexsort([self.means[:, self.p - i - 1] for i in range(self.p)])
-        self.means = self.means[ind]
-        self.covs = self.covs[ind]
-        self.weights = self.weights[ind]
+        # The classes are Gaussian components numbered 0, ..., k - 1
+        self.classes = np.arange(self.k)
 
         self.fitted = True
         return self
@@ -467,7 +435,7 @@ class GaussianMixture(Classifier):
 
         x = _validate_x(x, self.p)
 
-        densities = _densities(x, self.k, self.means, self.covs)
+        densities = _densities(x, self.means, self.covs)
         return _responsibility(densities, self.weights)
 
     @property
@@ -503,9 +471,9 @@ class GaussianMixture(Classifier):
         if not self.fitted:
             raise self.unfitted_exception
 
-        x = _validate_x(x, self.p)
+        x = _validate_x(x=x, p=self.p)
 
-        densities = _densities(x, k=self.k, means=self.means, covs=self.covs)
+        densities = _densities(x, self.means, self.covs)
         return _log_likelihood(self.weights, densities)
 
     @property
@@ -534,8 +502,8 @@ class GaussianMixture(Classifier):
         """Compute the Akaike information criterion (AIC) or corrected Akaike
         information criterion (AICc) for a sample. These are defined as
 
-            AIC = 2 * m - 2 * log(L),
-            AICc = 2 * m * (m + 1) / (n - m - 1) - 2 * log(L),
+            AIC = 2 * m - 2 * L,
+            AICc = 2 * m * (m + 1) / (n - m - 1) - 2 * L,
 
         where n is the number of observations in the sample `x`, m is the number
         of parameters of the Gaussian mixture model, and L is the log-likelihood
@@ -557,11 +525,6 @@ class GaussianMixture(Classifier):
             The Akaike information criterion or corrected Akaike information
             criterion.
         """
-        if not self.fitted:
-            raise self.unfitted_exception
-
-        # Validate parameters
-        x = _validate_x(x, self.p)
         correction = validate_bool(correction, "correction")
 
         m = self.n_parameters
@@ -576,7 +539,7 @@ class GaussianMixture(Classifier):
         """Compute the Bayesian information criterion (BIC) for a sample. This
         is defined as
 
-            BIC = log(n) * m - 2 * log(L),
+            BIC = log(n) * m - 2 * L,
 
         where n is the number of observations in the sample `x`, m is the number
         of parameters of the Gaussian mixture model, and L is the log-likelihood
@@ -594,12 +557,103 @@ class GaussianMixture(Classifier):
         bic : float
             The Bayesian information criterion.
         """
-        if not self.fitted:
-            raise self.unfitted_exception
-
-        x = _validate_x(x, self.p)
-
         return np.log(len(x)) * self.n_parameters - 2 * self.log_likelihood(x)
+
+
+def _gmm_fit(x, k, random_state, repeats, tol, iterations, init_repeats,
+             init_iter, cluster_kwargs):
+    """Fit a Gaussian mixture model by repeatedly initializing the parameters
+    and running the EM algorithm.
+
+    Parameters
+    ----------
+    x : array-like
+        Sample matrix of shape (n, p) (n=number of observations, p=number of
+        features).
+    repeats : int, optional
+        Number of times to repeat the algorithm with different initial parameter
+        values. This can decrease the chance of finding only non-global maxima
+        of the log-likelihood function.
+    tol : float, optional
+        Positive tolerance for algorithm convergence. If an iteration of the
+        EM algorithm increases the log-likelihood by less than `tol`, then the
+        algorithm is terminated.
+    iterations : int or None, optional
+        Maximum number of iterations to perform. If None, no maximum number is
+        imposed and the algorithm will continue running until the stopping
+        criterion determined by `tol` is satisfied.
+    init_repeats : int, optional
+        Number of times to repeat the EM algorithm when initializing the
+        parameter values using random cluster assignments.
+    init_iter : int, optional
+        Number of iterations of the EM algorithm when initializing the parameter
+        values using random cluster assignments.
+    cluster_kwargs : dict, optional
+        Dictionary of keyword arguments to pass to KMeansCluster.fit(). To be
+        used when determining initial parameters for the EM algorithm by k-means
+        clustering.
+
+    Returns
+    -------
+    means : numpy.ndarray of shape (k, p)
+        Fitted mean vectors.
+    covs : numpy.ndarray of shape (k, p, p)
+        Fitted covariance matrices.
+    weights : numpy.ndarray of shape (k,)
+        Fitted mixture weights.
+    """
+    # Get number of features
+    n, p = x.shape
+
+    if k == 1:
+        # This is just classical maximum likelihood estimation for a single
+        # multivariate Gaussian distribution, for which closed-form solutions
+        # are well-known. The maximum likelihood estimates for the mean and
+        # covariance matrix are the sample mean and sample covariance matrix.
+        means = x.mean(axis=0).reshape(1, p)
+        covs = np.cov(x, rowvar=False).reshape(1, p, p)
+        weights = np.ones(shape=(1,), dtype=np.float_)
+    else:
+        # The k >= 2 case requires the EM algorithm
+
+        # Initialize arrays for the model parameters
+        means = np.empty(shape=(k, p), dtype=np.float_)
+        covs = np.empty(shape=(k, p, p), dtype=np.float_)
+        weights = np.empty(shape=(k,), dtype=np.float_)
+
+        # Repeat the EM algorithm with different initial parameter values. At
+        # the end, the parameter estimates yielding the highest log-likelihood
+        # will be selected.
+        log_likelihood = -np.Inf
+        for r in range(repeats):
+
+            # Initialize the parameters of the model
+            if r == 0:
+                # First iteration: use k-means clustering to initialize
+                params = _init_param_cluster(x, k, random_state,
+                                             **cluster_kwargs)
+            else:
+                # Subsequent iterations: use random cluster assignments
+                params = _init_param_random(x, k, random_state, init_repeats,
+                                            tol, init_iter)
+
+            # Fit the model using the EM algorithm
+            *params, ll_new = _gmm_fit_em(x, k, *params, tol, iterations)
+
+            # Compare the new log-likelihood with the best log-likelihood so far
+            # and update the parameters if necessary
+            if ll_new > log_likelihood:
+                log_likelihood = ll_new
+                means, covs, weights = params
+
+        # Arrange the components so that the means are in increasing
+        # lexicographic order
+        ind = np.lexsort([means[:, p - i - 1] for i in range(p)])
+        means = means[ind]
+        covs = covs[ind]
+        weights = weights[ind]
+
+    return means, covs, weights
 
 
 def _init_param_cluster(x: np.ndarray, k: int,
@@ -711,9 +765,8 @@ def _init_param_random(x: np.ndarray, k: int,
 
         # Run the EM algorithm a restricted number of times and see which gives
         # the best log-likelihood at the end.
-        means_, covs_, weights_, ll_new = _fit_gmm(x, k, means_, covs_,
-                                                   weights_, tol=tol,
-                                                   iterations=iterations)
+        means_, covs_, weights_, ll_new = \
+            _gmm_fit_em(x, k, means_, covs_, weights_, tol, iterations)
 
         # Compare the new log-likelihood with the best log-likelihood so far and
         # update the parameters if necessary
@@ -726,7 +779,7 @@ def _init_param_random(x: np.ndarray, k: int,
     return means, covs, weights
 
 
-def _densities(x: np.ndarray, k: int, means: np.ndarray, covs: np.ndarray):
+def _densities(x: np.ndarray, means: np.ndarray, covs: np.ndarray):
     """Compute the Gaussian density for each observation and each component.
 
     Parameters
@@ -734,8 +787,6 @@ def _densities(x: np.ndarray, k: int, means: np.ndarray, covs: np.ndarray):
     x : numpy.ndarray
         Sample matrix of shape (n, p) (n=number of observations, p=number of
         features).
-    k : int
-        Number of Gaussian components.
     means : numpy.ndarray of shape (k, p)
         Mean vectors of the k Gaussian components.
     covs : numpy.ndarray of shape (k, p, p)
@@ -748,15 +799,15 @@ def _densities(x: np.ndarray, k: int, means: np.ndarray, covs: np.ndarray):
         component at the i-th observation.
     """
     # Compute matrix of normal density values
-    densities = np.empty(shape=(x.shape[0], k), dtype=np.float_)
-    for j in range(k):
+    densities = np.empty(shape=(x.shape[0], means.shape[0]), dtype=np.float_)
+    for j in range(means.shape[0]):
         densities[:, j] = st.multivariate_normal.pdf(x=x, mean=means[j],
                                                      cov=covs[j])
     return densities
 
 
 def _responsibility(densities: np.ndarray, weights: np.ndarray):
-    """Compute the responsibilities and densities of a Gaussian mixture model.
+    """Compute the responsibilities of a Gaussian mixture model.
 
     This is the E step of the EM algorithm for fitting Gaussian mixture models.
 
@@ -781,7 +832,25 @@ def _responsibility(densities: np.ndarray, weights: np.ndarray):
     return gamma
 
 
-def _update_param(x: np.ndarray, k: int, gamma: np.ndarray):
+def _log_likelihood(weights, densities):
+    """Compute the Gaussian mixture model log-likelihood.
+
+    Parameters
+    ----------
+    weights : numpy.ndarray of shape (k,)
+        Mixture weights for each Gaussian component.
+    densities : numpy.ndarray of shape (n, k)
+        The entry in the i-th row and j-th column is the density of the j-th
+        component at the i-th observation.
+
+    Returns
+    -------
+    The log-likelihood.
+    """
+    return np.sum(np.log(densities.dot(weights)))
+
+
+def _update_param(x: np.ndarray, gamma: np.ndarray):
     """Update the Gaussian mixture model parameters using the data and the
     responsibilities.
 
@@ -792,8 +861,6 @@ def _update_param(x: np.ndarray, k: int, gamma: np.ndarray):
     x : numpy.ndarray
         Sample matrix of shape (n, p) (n=number of observations, p=number of
         features).
-    k : int
-        Number of Gaussian components.
     gamma : numpy.ndarray of shape (n, k)
         Matrix of responsibilities. Each column represents the responsibility
         of that Gaussian component for the data.
@@ -808,6 +875,7 @@ def _update_param(x: np.ndarray, k: int, gamma: np.ndarray):
         Updated weights.
     """
     p = x.shape[1]
+    k = gamma.shape[1]
 
     means = np.empty(shape=(k, p), dtype=np.float_)
     covs = np.zeros(shape=(k, p, p), dtype=np.float_)
@@ -821,8 +889,8 @@ def _update_param(x: np.ndarray, k: int, gamma: np.ndarray):
     return means, covs, weights
 
 
-def _fit_gmm(x: np.ndarray, k: int, means: np.ndarray, covs: np.ndarray,
-             weights: np.ndarray, tol: float, iterations: int):
+def _gmm_fit_em(x: np.ndarray, k: int, means: np.ndarray, covs: np.ndarray,
+                weights: np.ndarray, tol: float, iterations: int):
     """Perform the Gaussian mixture model EM algorithm given initial parameters.
 
     Parameters
@@ -859,11 +927,11 @@ def _fit_gmm(x: np.ndarray, k: int, means: np.ndarray, covs: np.ndarray,
         Final log-likelihood.
     """
     # Compute initial log likelihood
-    densities = _densities(x, k, means, covs)
+    densities = _densities(x, means, covs)
     log_likelihood = _log_likelihood(weights, densities)
 
     # EM algorithm
-    counter = itertools.repeat(0) if iterations is None else range(iterations)
+    counter = itertools.count() if iterations is None else range(iterations)
     for _ in counter:
         old_log_likelihood = log_likelihood
 
@@ -871,38 +939,20 @@ def _fit_gmm(x: np.ndarray, k: int, means: np.ndarray, covs: np.ndarray,
         gamma = _responsibility(densities, weights)
 
         # M step
-        means, covs, weights = _update_param(x, k, gamma)
+        means, covs, weights = _update_param(x, gamma)
 
         # Compute the new log-likelihood
-        densities = _densities(x, k, means, covs)
+        densities = _densities(x, means, covs)
         log_likelihood = _log_likelihood(weights, densities)
 
         # Check for convergence
-        if old_log_likelihood <= log_likelihood < old_log_likelihood + tol:
+        if log_likelihood < old_log_likelihood + tol:
             break
 
     return means, covs, weights, log_likelihood
 
 
-def _log_likelihood(weights, densities):
-    """Compute the Gaussian mixture model log-likelihood.
-
-    Parameters
-    ----------
-    weights : numpy.ndarray of shape (k,)
-        Mixture weights for each Gaussian component.
-    densities : numpy.ndarray of shape (n, k)
-        The entry in the i-th row and j-th column is the density of the j-th
-        component at the i-th observation.
-
-    Returns
-    -------
-    The log-likelihood.
-    """
-    return np.sum(np.log(densities.dot(weights)))
-
-
-def _validate_x(x, p=None) -> np.ndarray:
+def _validate_x(x, p) -> np.ndarray:
     """Validate a data matrix for Gaussian mixture model computations.
 
     Parameters
@@ -917,39 +967,58 @@ def _validate_x(x, p=None) -> np.ndarray:
     x as an numpy.ndarray if all validations passed.
     """
     x = validate_sample(x, n_dim=2)
-    if p is not None:
-        if x.shape[1] != p:
-            raise ValueError(f"Data matrix has wrong number of columns: "
-                             f"expected {p}, found {x.shape[1]}")
+    if x.shape[1] != p:
+        raise ValueError(f"Data matrix has wrong number of columns: expected "
+                         f"{p}, found {x.shape[1]}")
     return x
 
 
-def _validate_fit_params(x, k, tol, iterations, repeats, init_iterations,
-                         init_repeats):
+def _gmm_validate_fit_params(x, repeats, tol, iterations, init_repeats,
+                             init_iter, cluster_kwargs):
     """Validate the parameters for GaussianMixture.fit().
 
     Parameters
     ----------
-    See the parameter descriptions for GaussianMixture.fit().
+    x : array-like
+        Sample matrix of shape (n, p) (n=number of observations, p=number of
+        features).
+    repeats : int, optional
+        Number of times to repeat the algorithm with different initial parameter
+        values.
+    tol : float, optional
+        Positive tolerance for EM algorithm convergence.
+    iterations : int or None, optional
+        Maximum number of iterations of the EM algorithm to perform.
+    init_repeats : int, optional
+        Number of times to repeat the EM algorithm when initializing the
+        parameter values using random cluster assignments.
+    init_iter : int, optional
+        Number of iterations of the EM algorithm when initializing the parameter
+        values using random cluster assignments.
+    cluster_kwargs : dict, optional
+        Dictionary of keyword arguments to pass to KMeansCluster.fit().
 
     Returns
     -------
     The updated parameters.
     """
     x = validate_sample(x, n_dim=2)
-    if len(x) <= k:
-        print("There must be more observations than Gaussian components.")
+
+    repeats = validate_int(repeats, "repeats", minimum=1)
 
     tol = validate_float(tol, "tol", positive=True)
 
     if iterations is not None:
         iterations = validate_int(iterations, "iterations", minimum=1)
 
-    repeats = validate_int(repeats, "repeats", minimum=1)
-
-    init_iterations = validate_int(init_iterations, "init_iterations",
-                                   minimum=1)
-
     init_repeats = validate_int(init_repeats, "init_repeats", minimum=1)
 
-    return x, tol, iterations, repeats, init_iterations, init_repeats
+    init_iter = validate_int(init_iter, "init_iterations",
+                             minimum=1)
+
+    if cluster_kwargs is None:
+        cluster_kwargs = dict()
+    elif not isinstance(cluster_kwargs, dict):
+        raise TypeError("Parameter 'cluster_kwargs' must be a dict.")
+
+    return x, repeats, tol, iterations, init_repeats, init_iter, cluster_kwargs
