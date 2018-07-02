@@ -5,7 +5,7 @@ import numpy as np
 import scipy.stats as st
 
 from ..generic import Fittable
-from ..utils import validate_samples, validate_int, validate_float
+from ..utils import validate_sample, validate_int, validate_float, validate_bool
 
 
 class KernelDensityEstimator(Fittable):
@@ -13,6 +13,8 @@ class KernelDensityEstimator(Fittable):
 
     Properties
     ----------
+    p : int
+        Number of dimensions of the data.
     data : numpy.ndarray
         The sample from the density being estimated.
     kernel : callable
@@ -21,7 +23,7 @@ class KernelDensityEstimator(Fittable):
     bandwidth : float
         The positive smoothing parameter
     """
-
+    p: int = None
     data: np.ndarray = None
     kernel = None
     bandwidth: float = None
@@ -35,24 +37,32 @@ class KernelDensityEstimator(Fittable):
 
         Parameters
         ----------
-        data : array-like, of shape (n, )
+        data : array-like, of shape (n, p)
             The sample from the density being estimated.
-        kernel : callable, optional
+        kernel : str or callable, optional
             The kernel (non-negative function which integrates to 1) that
             assigns weights to each point in the sample.
-            By default, this is the standard Gaussian density.
+            Possible values:
+            *   None
+                Standard Gaussian density function
+            *   callable
+                Custom kernel. No checking is done to ensure that the definition
+                of a kernel is satisfied.
         bandwidth : float, optional
             The positive smoothing parameter.
-            By default, this is chosen to be Silverman's rule of thumb, which is
-            optimal (in the sense of minimizing mean integrated square error) in
-            the Gaussian case. Generally you should choose your bandwidth on a
-            case-by-case basis (e.g., by cross-validation).
+            In the case of univariate data, the default is chosen to be
+            Silverman's rule of thumb, which is optimal (in the sense of
+            minimizing mean integrated square error) in the Gaussian case.
+            Generally you should choose your bandwidth on a case-by-case basis
+            (e.g., by cross-validation).
+            There is no default bandwidth in the multivariate case.
 
         Returns
         -------
         This KernelDensityEstimator instance.
         """
-        self.data = validate_samples(data, n_dim=1)
+        self.data = validate_sample(data, n_dim=2)
+        self.p = self.data.shape[1]
 
         if kernel is None:
             self.kernel = st.norm.pdf
@@ -62,20 +72,26 @@ class KernelDensityEstimator(Fittable):
             raise TypeError("Parameter 'kernel' must be a function.")
 
         if bandwidth is None:
-            # Silverman's rule of thumb
-            n = len(self.data)
-            scale = self.data.std(ddof=1)
-            self.bandwidth = 1.06 * scale * (n ** (-1 / 5))
+            if self.p == 1:
+                # Silverman's rule of thumb
+                n = len(self.data)
+                scale = self.data.std(ddof=1)
+                self.bandwidth = 1.06 * scale * (n ** (-1 / 5))
+            else:
+                raise ValueError("Parameter 'bandwidth' must be provided for "
+                                 "multivariate kernel density estimation.")
         else:
             self.bandwidth = validate_float(bandwidth, "bandwidth",
                                             positive=True)
 
-        h = self.bandwidth
-
         def density(x):
-            return np.mean(self.kernel((x - data) / h)) / h
+            out = np.empty(shape=(len(x),), dtype=np.float_)
+            for i in range(len(x)):
+                u = np.linalg.norm(x[i] - self.data, axis=1) / self.bandwidth
+                out[i] = np.mean(self.kernel(u)) / (self.bandwidth ** self.p)
+            return out
 
-        self._density = np.vectorize(density)
+        self._density = density
 
         self.fitted = True
         return self
@@ -84,55 +100,64 @@ class KernelDensityEstimator(Fittable):
         """Evaluate the estimated density at a point (or a list of points)."""
         if not self.fitted:
             raise self.unfitted_exception
-        x = validate_samples(x, n_dim=1)
+        x = validate_sample(x, n_dim=2)
+        if x.shape[1] != self.p:
+            raise ValueError(f"Expected {self.p} columns, found {x.shape[1]}.")
         return self._density(x)
 
-    def plot(self, x_min=None, x_max=None, num=500, ax=None, **kwargs):
-        """Plot the estimated density curve.
+    def plot(self, num=200, fill=True, ax=None, **kwargs):
+        """Plot the estimated density in the 1D and 2D cases.
+
+        In the 1D case, the density curve is plotted. In the 2D case, a contour
+        plot of the density is drawn.
 
         Parameters
         ----------
-        x_min : float, optional
-        x_max : float, optional
-            The endpoints of the interval on which to plot.
-        num : int, optional
-            The number of points to plot
-        ax : matplotlib.axes.Axes object, optional
-            The axes on which to draw the plot.
+        num : int
+            Number of points to sample.
+        fill : bool, optional
+            Indicates whether to use contourf (True) or contour (False) to plot
+            contours in the 2D case.
+        ax : matplotlib.axes.Axes, optional
+            The matplotlib.axes.Axes on which to plot.
         kwargs : dict
-            Additional keyword arguments to pass to the underlying matplotlib
-            plotting function.
+            Additional keyword arguments to pass to either ax.plot() (in the 1D
+            case) or ax.contourf() (in the 2D case).
 
         Returns
         -------
-        The matplotlib.axes.Axes on which the plot was drawn.
+        The matplotlib.axes.Axes on which the density was plotted.
         """
-        if not self.fitted:
-            raise self.unfitted_exception
-
-        # Validate all parameters
-        if x_min is None:
-            x_min = min(self.data)
-        else:
-            x_min = validate_float(x_min, "x_min")
-
-        if x_max is None:
-            x_max = max(self.data)
-        else:
-            x_max = validate_float(x_max, "x_max")
-
         num = validate_int(num, "num", minimum=1)
+        fill = validate_bool(fill, "fill")
 
         if ax is None:
             ax = plt.gca()
 
-        x = np.linspace(x_min, x_max, num)
-        y = self(x)
+        if self.p == 1:
+            x_min, x_max = ax.get_xlim()
+            x = np.linspace(x_min, x_max, num)
+            plot_kwargs = dict(label="Kernel density estimate")
+            plot_kwargs.update(kwargs)
+            ax.plot(x, self(x), **plot_kwargs)
+            ax.set_xlim(x_min, x_max)
+            ax.autoscale(enable=True, axis="y")
+            ax.set_xlabel("Data")
+            ax.set_ylabel("Density")
+        elif self.p == 2:
+            x_min, x_max = ax.get_xlim()
+            y_min, y_max = ax.get_ylim()
+            x = np.linspace(x_min, x_max, num)
+            y = np.linspace(y_min, y_max, num)
+            xx, yy = np.meshgrid(x, y)
+            xy = np.column_stack((xx.ravel(), yy.ravel()))
+            density = self(xy).reshape(-1, num)
+            if fill:
+                ax.contourf(xx, yy, density, **kwargs)
+            else:
+                ax.contour(xx, yy, density, **kwargs)
+        else:
+            raise AttributeError(
+                "Density plotting is only supported for 1D and 2D models.")
 
-        params = dict(label="Kernel density estimate")
-        params.update(kwargs)
-
-        ax.plot(x, y, **params)
-        ax.set(xlabel="Data", ylabel="Density")
-        ax.set(xlim=(x_min, x_max))
         return ax
