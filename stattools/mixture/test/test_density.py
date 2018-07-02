@@ -34,7 +34,7 @@ class TestGaussianMixtureDensity(unittest.TestCase):
 
             # Vector of shape (k,): different scalar multiples of the identity
             # matrix
-            scalars = np.arange(k)
+            scalars = np.arange(k) + 1
             covs = np.asarray([scalar * np.eye(p) for scalar in scalars])
             gmd = GaussianMixtureDensity(means=means, covs=scalars)
             np.testing.assert_equal(gmd.covs, covs)
@@ -44,20 +44,20 @@ class TestGaussianMixtureDensity(unittest.TestCase):
                 # If p=k, then vectors of shape (p,)=(k,) get interpreted as in
                 # the previous case
                 continue
-            diag = np.arange(p)
+            diag = np.arange(p) + 1
             covs = np.asarray([np.diag(diag) for _ in range(k)])
             gmd = GaussianMixtureDensity(means=means, covs=diag)
             np.testing.assert_equal(gmd.covs, covs)
 
             # Matrix of shape (p, p): same covariance matrix for each component
-            mat = np.arange(p * p).reshape(p, p)
+            mat = np.eye(p)
             covs = np.asarray([mat for _ in range(k)])
             gmd = GaussianMixtureDensity(means=means, covs=mat)
             np.testing.assert_equal(gmd.covs, covs)
 
             # Matrix of shape (k, p, p): specify covariance matrix for each
             # component
-            covs = np.arange(k * p * p).reshape(k, p, p)
+            covs = np.asarray([(i + 1) * np.eye(p) for i in range(k)])
             gmd = GaussianMixtureDensity(means=means, covs=covs)
             np.testing.assert_equal(gmd.covs, covs)
 
