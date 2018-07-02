@@ -296,6 +296,9 @@ class GaussianMixture(Classifier):
         component.
     random_state : numpy.random.RandomState
         The random number generator.
+    scores : list
+        List of lists consisting of the log-likelihood (score) at each iteration
+        of the EM algorithm. There is one list for each run of the EM algorithm.
 
     References
     ----------
@@ -312,6 +315,7 @@ class GaussianMixture(Classifier):
     covs: np.ndarray = None
     weights: np.ndarray = None
     random_state: np.random.RandomState = None
+    scores: list = None
 
     def __init__(self, k, random_state=None):
         """Initialize a GMM by specifying the number of Gaussian components.
@@ -335,7 +339,7 @@ class GaussianMixture(Classifier):
             self.random_state = np.random.RandomState(random_state)
 
     def fit(self, x, repeats=5, tol=1e-6, iterations=None, init_repeats=30,
-            init_iter=10, cluster_kwargs=None):
+            init_iter=10, kmc_kwargs=None):
         """Fit the Gaussian mixture model (i.e., estimate the parameters).
 
         Fitting is done using (potentially several runs of) the EM algorithm to
@@ -378,7 +382,7 @@ class GaussianMixture(Classifier):
         init_iter : int, optional
             Number of iterations of the EM algorithm when initializing the
             parameter values using random cluster assignments (described above).
-        cluster_kwargs : dict, optional
+        kmc_kwargs : dict, optional
             Dictionary of keyword arguments to pass to KMeansCluster.fit(). To
             be used when determining initial parameters for the EM algorithm by
             k-means clustering.
@@ -395,17 +399,25 @@ class GaussianMixture(Classifier):
             pp. 282--293. DOI: https://doi.org/10.3758/s13428-015-0697-6
         """
         # Validate parameters
-        x, repeats, tol, iterations, init_repeats, init_iter, cluster_kwargs = \
-            _gmm_validate_fit_params(x, repeats, tol, iterations, init_repeats,
-                                     init_iter, cluster_kwargs)
+        x = validate_sample(x, n_dim=2)
+        repeats = validate_int(repeats, "repeats", minimum=1)
+        tol = validate_float(tol, "tol", positive=True)
+        if iterations is not None:
+            iterations = validate_int(iterations, "iterations", minimum=1)
+        init_repeats = validate_int(init_repeats, "init_repeats", minimum=1)
+        init_iter = validate_int(init_iter, "init_iter", minimum=1)
+        if kmc_kwargs is None:
+            kmc_kwargs = dict()
+        elif not isinstance(kmc_kwargs, dict):
+            raise TypeError("Parameter 'cluster_kwargs' must be a dict.")
 
         # Get number of features
         self.p = x.shape[1]
 
         # Fit the model
-        self.means, self.covs, self.weights = \
+        self.means, self.covs, self.weights, self.scores = \
             _gmm_fit(x, self.k, self.random_state, repeats, tol, iterations,
-                     init_repeats, init_iter, cluster_kwargs)
+                     init_repeats, init_iter, kmc_kwargs)
 
         # The classes are Gaussian components numbered 0, ..., k - 1
         self.classes = np.arange(self.k)
@@ -561,7 +573,7 @@ class GaussianMixture(Classifier):
 
 
 def _gmm_fit(x, k, random_state, repeats, tol, iterations, init_repeats,
-             init_iter, cluster_kwargs):
+             init_iter, kmc_kwargs):
     """Fit a Gaussian mixture model by repeatedly initializing the parameters
     and running the EM algorithm.
 
@@ -588,7 +600,7 @@ def _gmm_fit(x, k, random_state, repeats, tol, iterations, init_repeats,
     init_iter : int, optional
         Number of iterations of the EM algorithm when initializing the parameter
         values using random cluster assignments.
-    cluster_kwargs : dict, optional
+    kmc_kwargs : dict, optional
         Dictionary of keyword arguments to pass to KMeansCluster.fit(). To be
         used when determining initial parameters for the EM algorithm by k-means
         clustering.
@@ -601,50 +613,42 @@ def _gmm_fit(x, k, random_state, repeats, tol, iterations, init_repeats,
         Fitted covariance matrices.
     weights : numpy.ndarray of shape (k,)
         Fitted mixture weights.
+    scores : list
+        List of lists of log-likelihoods at each iteration of each run of the
+        EM algorithm.
     """
     # Get number of features
     n, p = x.shape
 
-    if k == 1:
-        # This is just classical maximum likelihood estimation for a single
-        # multivariate Gaussian distribution, for which closed-form solutions
-        # are well-known. The maximum likelihood estimates for the mean and
-        # covariance matrix are the sample mean and sample covariance matrix.
-        means = x.mean(axis=0).reshape(1, p)
-        covs = np.cov(x, rowvar=False).reshape(1, p, p)
-        weights = np.ones(shape=(1,), dtype=np.float_)
-    else:
-        # The k >= 2 case requires the EM algorithm
+    # Initialize arrays for the model parameters
+    means = np.empty(shape=(k, p), dtype=np.float_)
+    covs = np.empty(shape=(k, p, p), dtype=np.float_)
+    weights = np.empty(shape=(k,), dtype=np.float_)
 
-        # Initialize arrays for the model parameters
-        means = np.empty(shape=(k, p), dtype=np.float_)
-        covs = np.empty(shape=(k, p, p), dtype=np.float_)
-        weights = np.empty(shape=(k,), dtype=np.float_)
+    # Repeat the EM algorithm with different initial parameter values. At
+    # the end, the parameter estimates yielding the highest log-likelihood
+    # will be selected.
+    scores = []
+    log_likelihood = -np.Inf
+    for r in range(repeats):
+        # Initialize the parameters of the model
+        if r == 0:
+            # First iteration: use k-means clustering to initialize
+            params = _init_param_cluster(x, k, random_state, **kmc_kwargs)
+        else:
+            # Subsequent iterations: use random cluster assignments
+            params = _init_param_random(x, k, random_state, init_repeats, tol,
+                                        init_iter)
 
-        # Repeat the EM algorithm with different initial parameter values. At
-        # the end, the parameter estimates yielding the highest log-likelihood
-        # will be selected.
-        log_likelihood = -np.Inf
-        for r in range(repeats):
+        # Fit the model using the EM algorithm
+        *params, log_likelihoods = _gmm_fit_em(x, *params, tol, iterations)
+        scores.append(log_likelihoods)
 
-            # Initialize the parameters of the model
-            if r == 0:
-                # First iteration: use k-means clustering to initialize
-                params = _init_param_cluster(x, k, random_state,
-                                             **cluster_kwargs)
-            else:
-                # Subsequent iterations: use random cluster assignments
-                params = _init_param_random(x, k, random_state, init_repeats,
-                                            tol, init_iter)
-
-            # Fit the model using the EM algorithm
-            *params, ll_new = _gmm_fit_em(x, k, *params, tol, iterations)
-
-            # Compare the new log-likelihood with the best log-likelihood so far
-            # and update the parameters if necessary
-            if ll_new > log_likelihood:
-                log_likelihood = ll_new
-                means, covs, weights = params
+        # Compare the new log-likelihood with the best log-likelihood so far
+        # and update the parameters if necessary
+        if log_likelihoods[-1] > log_likelihood:
+            log_likelihood = log_likelihoods[-1]
+            means, covs, weights = params
 
         # Arrange the components so that the means are in increasing
         # lexicographic order
@@ -653,7 +657,7 @@ def _gmm_fit(x, k, random_state, repeats, tol, iterations, init_repeats,
         covs = covs[ind]
         weights = weights[ind]
 
-    return means, covs, weights
+    return means, covs, weights, scores
 
 
 def _init_param_cluster(x: np.ndarray, k: int,
@@ -765,16 +769,14 @@ def _init_param_random(x: np.ndarray, k: int,
 
         # Run the EM algorithm a restricted number of times and see which gives
         # the best log-likelihood at the end.
-        means_, covs_, weights_, ll_new = \
-            _gmm_fit_em(x, k, means_, covs_, weights_, tol, iterations)
+        *params, log_likelihoods = \
+            _gmm_fit_em(x, means_, covs_, weights_, tol, iterations)
 
         # Compare the new log-likelihood with the best log-likelihood so far and
         # update the parameters if necessary
-        if ll_new > log_likelihood:
-            log_likelihood = ll_new
-            means = means_
-            covs = covs_
-            weights = weights_
+        if log_likelihoods[-1] > log_likelihood:
+            log_likelihood = log_likelihoods[-1]
+            means, covs, weights = params
 
     return means, covs, weights
 
@@ -889,7 +891,7 @@ def _update_param(x: np.ndarray, gamma: np.ndarray):
     return means, covs, weights
 
 
-def _gmm_fit_em(x: np.ndarray, k: int, means: np.ndarray, covs: np.ndarray,
+def _gmm_fit_em(x: np.ndarray, means: np.ndarray, covs: np.ndarray,
                 weights: np.ndarray, tol: float, iterations: int):
     """Perform the Gaussian mixture model EM algorithm given initial parameters.
 
@@ -898,8 +900,6 @@ def _gmm_fit_em(x: np.ndarray, k: int, means: np.ndarray, covs: np.ndarray,
     x : numpy.ndarray
         Sample matrix of shape (n, p) (n=number of observations, p=number of
         features).
-    k : int
-        Number of Gaussian components.
     means : numpy.ndarray of shape (k, p)
         Initial mean vectors for the EM algorithm.
     covs : numpy.ndarray of shape (k, p, p)
@@ -923,12 +923,16 @@ def _gmm_fit_em(x: np.ndarray, k: int, means: np.ndarray, covs: np.ndarray,
         Final covariance matrices.
     weights : numpy.ndarray of shape (k,)
         Final weights.
-    log_likelihood : float
-        Final log-likelihood.
+    log_likelihoods : list
+        List of the initial log-likelihood and the log-likelihoods at each each
+        iteration of the EM algorithm.
     """
+    log_likelihoods = []
+
     # Compute initial log likelihood
     densities = _densities(x, means, covs)
     log_likelihood = _log_likelihood(weights, densities)
+    log_likelihoods.append(log_likelihood)
 
     # EM algorithm
     counter = itertools.count() if iterations is None else range(iterations)
@@ -944,12 +948,13 @@ def _gmm_fit_em(x: np.ndarray, k: int, means: np.ndarray, covs: np.ndarray,
         # Compute the new log-likelihood
         densities = _densities(x, means, covs)
         log_likelihood = _log_likelihood(weights, densities)
+        log_likelihoods.append(log_likelihood)
 
         # Check for convergence
         if log_likelihood < old_log_likelihood + tol:
             break
 
-    return means, covs, weights, log_likelihood
+    return means, covs, weights, log_likelihoods
 
 
 def _validate_x(x, p) -> np.ndarray:
@@ -971,54 +976,3 @@ def _validate_x(x, p) -> np.ndarray:
         raise ValueError(f"Data matrix has wrong number of columns: expected "
                          f"{p}, found {x.shape[1]}")
     return x
-
-
-def _gmm_validate_fit_params(x, repeats, tol, iterations, init_repeats,
-                             init_iter, cluster_kwargs):
-    """Validate the parameters for GaussianMixture.fit().
-
-    Parameters
-    ----------
-    x : array-like
-        Sample matrix of shape (n, p) (n=number of observations, p=number of
-        features).
-    repeats : int, optional
-        Number of times to repeat the algorithm with different initial parameter
-        values.
-    tol : float, optional
-        Positive tolerance for EM algorithm convergence.
-    iterations : int or None, optional
-        Maximum number of iterations of the EM algorithm to perform.
-    init_repeats : int, optional
-        Number of times to repeat the EM algorithm when initializing the
-        parameter values using random cluster assignments.
-    init_iter : int, optional
-        Number of iterations of the EM algorithm when initializing the parameter
-        values using random cluster assignments.
-    cluster_kwargs : dict, optional
-        Dictionary of keyword arguments to pass to KMeansCluster.fit().
-
-    Returns
-    -------
-    The updated parameters.
-    """
-    x = validate_sample(x, n_dim=2)
-
-    repeats = validate_int(repeats, "repeats", minimum=1)
-
-    tol = validate_float(tol, "tol", positive=True)
-
-    if iterations is not None:
-        iterations = validate_int(iterations, "iterations", minimum=1)
-
-    init_repeats = validate_int(init_repeats, "init_repeats", minimum=1)
-
-    init_iter = validate_int(init_iter, "init_iterations",
-                             minimum=1)
-
-    if cluster_kwargs is None:
-        cluster_kwargs = dict()
-    elif not isinstance(cluster_kwargs, dict):
-        raise TypeError("Parameter 'cluster_kwargs' must be a dict.")
-
-    return x, repeats, tol, iterations, init_repeats, init_iter, cluster_kwargs
